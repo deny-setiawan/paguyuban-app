@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 
 // Paths unauthenticated users can access freely
-const PUBLIC_PATHS = ['/', '/login', '/otp', '/register', '/api/auth/send-otp', '/api/auth/verify-otp']
+const PUBLIC_PATHS = ['/', '/login', '/otp', '/register', '/inventaris', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/inventaris', '/api/register']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl

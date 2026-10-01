@@ -2,8 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, rtGroups, pengumuman, iuranInvoices } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { profiles, rtGroups, pengumuman, iuranInvoices, inventaris, warga } from '@/lib/db/schema'
+import { eq, and, desc, count } from 'drizzle-orm'
 import Link from 'next/link'
 import Shell from '@/components/layout/Shell'
 import TopBar from '@/components/layout/TopBar'
@@ -35,11 +35,44 @@ export default async function HomePage() {
     redirect('/pengurus')
   }
 
-  // Guest view
+  // Guest view — fetch public data
   if (!profile) {
+    const defaultRt = await db.select().from(rtGroups).limit(1).then(r => r[0] ?? null)
+    let guestPengumuman: { id: string; judul: string; isi: string | null; kategori: string | null; prioritas: string | null; createdAt: string }[] = []
+    let guestInventaris: { id: string; nama: string; hargaSewa: number | null; stok: number | null; fotoUrl: string | null; deskripsi: string | null }[] = []
+    let rtStats = { jumlahWarga: 0, jumlahKk: 0 }
+
+    if (defaultRt) {
+      const [pengumumanRaw, inventarisRaw, wargaCount] = await Promise.all([
+        db.select().from(pengumuman)
+          .where(and(eq(pengumuman.rtGroupId, defaultRt.id), eq(pengumuman.isPublished, true)))
+          .orderBy(desc(pengumuman.createdAt)).limit(3),
+        db.select().from(inventaris).where(eq(inventaris.rtGroupId, defaultRt.id)),
+        db.select({ c: count() }).from(warga).where(eq(warga.rtGroupId, defaultRt.id)),
+      ])
+      guestPengumuman = pengumumanRaw.map(p => ({
+        id: p.id, judul: p.judul, isi: p.isi, kategori: p.kategori,
+        prioritas: p.prioritas, createdAt: p.createdAt.toISOString(),
+      }))
+      guestInventaris = inventarisRaw.map(i => ({
+        id: i.id, nama: i.nama, hargaSewa: i.hargaSewa,
+        stok: i.stok, fotoUrl: i.fotoUrl, deskripsi: i.deskripsi,
+      }))
+      rtStats = {
+        jumlahWarga: wargaCount[0]?.c ?? 0,
+        jumlahKk: defaultRt.jumlahKk ?? 0,
+      }
+    }
+
     return (
       <Shell>
-        <GuestPage rtName="Paguyuban PKR-Pepe" />
+        <GuestPage
+          rtName={defaultRt?.namaRt || 'Paguyuban PKR-Pepe'}
+          rtId={defaultRt?.id}
+          pengumuman={guestPengumuman}
+          inventaris={guestInventaris}
+          rtStats={rtStats}
+        />
         <BottomNav />
       </Shell>
     )
@@ -169,18 +202,6 @@ export default async function HomePage() {
               })}
             </div>
           )}
-        </div>
-
-        {/* Info lingkungan */}
-        <div>
-          <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">🌱</span> Lingkungan kita</div>
-            <span style={{ fontSize: 10, color: 'var(--gray400)', fontWeight: 700, background: 'var(--gray100)', padding: '2px 8px', borderRadius: 'var(--r999)' }}>Segera</span>
-          </div>
-          <div className="ib green">
-            <span>♻️</span>
-            <div>Sebentar lagi Anda bisa ikut program bank sampah, lapor lingkungan, dan pantau kondisi RT.</div>
-          </div>
         </div>
       </div>
       <BottomNav />

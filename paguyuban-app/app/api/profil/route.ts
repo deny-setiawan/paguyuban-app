@@ -34,21 +34,30 @@ export async function PUT(req: NextRequest) {
   if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { fullName, email, noRumah, statusSosial } = body
-
-  if (!fullName?.trim()) {
-    return NextResponse.json({ error: 'Nama lengkap wajib diisi' }, { status: 400 })
-  }
+  const { fullName, email, noRumah, statusSosial, pekerjaan, tanggalLahir } = body
 
   const [updated] = await db.update(profiles)
     .set({
-      fullName: fullName.trim(),
+      fullName: fullName?.trim() || null,
       email: email?.trim() || null,
       noRumah: noRumah?.trim() || null,
       statusSosial: statusSosial || null,
     })
     .where(eq(profiles.id, payload.sub))
     .returning()
+
+  // Update warga record if pekerjaan or tanggalLahir provided
+  if (pekerjaan !== undefined || tanggalLahir !== undefined) {
+    const [wargaData] = await db.select().from(warga).where(eq(warga.profileId, payload.sub)).limit(1)
+    if (wargaData) {
+      await db.update(warga)
+        .set({
+          pekerjaan: pekerjaan ?? wargaData.pekerjaan,
+          tanggalLahir: tanggalLahir ?? wargaData.tanggalLahir,
+        })
+        .where(eq(warga.id, wargaData.id))
+    }
+  }
 
   return NextResponse.json({ ok: true, profile: updated })
 }

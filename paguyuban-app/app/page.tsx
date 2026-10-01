@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, rtGroups, pengumuman, iuranInvoices, inventaris, warga } from '@/lib/db/schema'
+import { profiles, rtGroups, pengumuman, iuranInvoices, inventaris, warga, transaksi } from '@/lib/db/schema'
 import { eq, and, desc, count } from 'drizzle-orm'
 import Link from 'next/link'
 import Shell from '@/components/layout/Shell'
@@ -79,14 +79,18 @@ export default async function HomePage() {
   }
 
   // Authenticated warga — dashboard
-  const [pengumumanList, invoiceList] = await Promise.all([
+  const [pengumumanList, invoiceList, lastTransRes] = await Promise.all([
     db.select().from(pengumuman)
       .where(and(eq(pengumuman.rtGroupId, profile.rtGroupId!), eq(pengumuman.isPublished, true)))
       .orderBy(desc(pengumuman.createdAt)).limit(3),
     db.select().from(iuranInvoices)
       .where(and(eq(iuranInvoices.wargaId, profile.id), eq(iuranInvoices.status, 'belum_bayar')))
       .limit(10),
+    db.select().from(transaksi)
+      .where(eq(transaksi.rtGroupId, profile.rtGroupId!))
+      .orderBy(desc(transaksi.createdAt)).limit(1),
   ])
+  const saldoKas = lastTransRes[0]?.saldoSetelah ?? null
 
   const totalTagihan = invoiceList.reduce((s, i) => s + (i.nominal || 0), 0)
 
@@ -138,6 +142,25 @@ export default async function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Saldo kas */}
+        {saldoKas !== null && (
+          <div>
+            <div className="sec-h" style={{ marginBottom: 10 }}>
+              <div className="t"><span className="em">💰</span> Kas RT</div>
+            </div>
+            <div className="rl-st">
+              <div>
+                <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--g700)' }}>{rupiah(saldoKas)}</b>
+                <span>Saldo kas</span>
+              </div>
+              <div>
+                <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--gray700)' }}>{rt?.jumlahKk ?? '—'}</b>
+                <span>Jumlah KK</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Menu warga */}
         <div>

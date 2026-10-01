@@ -170,7 +170,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
                     </div>
                     <div className="pi-body">
                       <div className="pi-t">
-                        Iuran {BULAN[inv.periodeBulan - 1]} {inv.periodeTahun}
+                        Iuran {BULAN[inv.periodeBulan]} {inv.periodeTahun}
                         <span className={`pill ${STATUS_INVOICE[inv.status]?.cls}`}>
                           {STATUS_INVOICE[inv.status]?.label}
                         </span>
@@ -210,7 +210,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
                     <div className="pi-ico" style={{ background: 'var(--g50)' }}>✅</div>
                     <div className="pi-body">
                       <div className="pi-t">
-                        Iuran {BULAN[inv.periodeBulan - 1]} {inv.periodeTahun}
+                        Iuran {BULAN[inv.periodeBulan]} {inv.periodeTahun}
                         <span className={`pill ${STATUS_INVOICE[inv.status]?.cls}`}>
                           {STATUS_INVOICE[inv.status]?.label}
                         </span>
@@ -279,7 +279,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
         <div style={{ background: 'var(--gray50)', borderRadius: 12, padding: '8px 4px', marginBottom: 16 }}>
           {selectedInvoices.map(inv => (
             <div key={inv.id} className="kv">
-              <span className="k">Iuran {BULAN[inv.periodeBulan - 1]} {inv.periodeTahun}</span>
+              <span className="k">Iuran {BULAN[inv.periodeBulan]} {inv.periodeTahun}</span>
               <span className="v">{rupiah(inv.nominal)}</span>
             </div>
           ))}

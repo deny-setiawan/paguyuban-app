@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 
-const PUBLIC_PATHS = ['/login', '/otp', '/register', '/api/auth/send-otp', '/api/auth/verify-otp']
+// Paths unauthenticated users can access freely
+const PUBLIC_PATHS = ['/', '/login', '/otp', '/register', '/api/auth/send-otp', '/api/auth/verify-otp']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  const isPublic = PUBLIC_PATHS.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)))
   if (isPublic) return NextResponse.next()
 
   const token = request.cookies.get('session')?.value
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    // Redirect unauthenticated users to home (guest view), not /login
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   const payload = await verifyJwt(token)
   if (!payload) {
-    const response = NextResponse.redirect(new URL('/login', request.url))
+    const response = NextResponse.redirect(new URL('/', request.url))
     response.cookies.set('session', '', { maxAge: 0, path: '/' })
     return response
   }

@@ -39,6 +39,31 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { action, ...data } = body
 
+    // Create new inventaris item (pengurus only)
+    if (!action) {
+      if (token) {
+        const payload = await verifyJwt(token)
+        if (!payload || !['ketua', 'admin'].includes(payload.role)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+        const [rt] = await db.select().from(rtGroups).limit(1)
+        if (!rt) return NextResponse.json({ error: 'No RT' }, { status: 400 })
+        const { nama, hargaSewa, stokTotal, stok, deskripsi, fotoUrl } = data
+        if (!nama) return NextResponse.json({ error: 'Nama wajib diisi' }, { status: 400 })
+        const [item] = await db.insert(inventaris).values({
+          rtGroupId: rt.id,
+          nama,
+          hargaSewa: hargaSewa ?? 0,
+          stokTotal: stokTotal ?? 1,
+          stok: stok ?? stokTotal ?? 1,
+          deskripsi: deskripsi || null,
+          fotoUrl: fotoUrl || null,
+        }).returning()
+        return NextResponse.json({ ok: true, item })
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     if (action === 'sewa') {
       const { inventarisId, penyewaNama, penyewaHp, jumlah = 1, tglSewa, tglKembaliRencana } = data
       if (!inventarisId || !penyewaNama || !tglSewa) {

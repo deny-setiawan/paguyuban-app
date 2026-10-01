@@ -150,53 +150,106 @@ export default async function PengurusPage() {
         <div className="t"><span className="em">⚡</span> Menu Pengurus</div>
       </div>
       <div className="menu-grid">
-        {(role !== 'bendahara') && (
-          <div className="menu-item" style={{ opacity: 0.55 }}>
-            <div className="mi-ico" style={{ background: 'var(--gold-l)' }}>👥</div>
-            <div className="mi-lbl">Data Warga</div>
-          </div>
+        {role !== 'bendahara' && (
+          <Link href="/pengurus/verifikasi">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--gold-l)', position: 'relative' }}>
+                👥
+                {stats.pendingInvite > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingInvite}</span>}
+              </div>
+              <div className="mi-lbl">Warga Baru</div>
+            </div>
+          </Link>
         )}
-        {(role !== 'bendahara') && (
-          <div className="menu-item" style={{ opacity: 0.55 }}>
-            <div className="mi-ico" style={{ background: 'var(--blue-l)' }}>✉️</div>
-            <div className="mi-lbl">Proses Surat</div>
-          </div>
+        {role !== 'bendahara' && (
+          <Link href="/pengurus/surat-antrean">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--blue-l)', position: 'relative' }}>
+                ✉️
+                {stats.pendingSurat > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingSurat}</span>}
+              </div>
+              <div className="mi-lbl">Proses Surat</div>
+            </div>
+          </Link>
         )}
         {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
-          <div className="menu-item" style={{ opacity: 0.55 }}>
-            <div className="mi-ico" style={{ background: 'var(--g50)' }}>💰</div>
-            <div className="mi-lbl">Kas RT</div>
-          </div>
+          <Link href="/pengurus/kas">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--g50)' }}>💰</div>
+              <div className="mi-lbl">Kas RT</div>
+            </div>
+          </Link>
         )}
-        {(role === 'bendahara' || role === 'admin') && (
-          <div className="menu-item" style={{ opacity: 0.55 }}>
-            <div className="mi-ico" style={{ background: 'var(--teal-l)' }}>💳</div>
-            <div className="mi-lbl">Verif. Bayar</div>
-          </div>
+        {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
+          <Link href="/pengurus/verifikasi-bayar">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--teal-l)', position: 'relative' }}>
+                💳
+                {stats.pendingPayment > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingPayment}</span>}
+              </div>
+              <div className="mi-lbl">Verif. Bayar</div>
+            </div>
+          </Link>
         )}
         {(role === 'ketua' || role === 'admin') && (
-          <div className="menu-item" style={{ opacity: 0.55 }}>
-            <div className="mi-ico" style={{ background: 'var(--purple-l)' }}>📝</div>
-            <div className="mi-lbl">Laporan</div>
-          </div>
+          <Link href="/pengurus/laporan-masuk">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--purple-l)', position: 'relative' }}>
+                📝
+                {stats.pendingLaporan > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingLaporan}</span>}
+              </div>
+              <div className="mi-lbl">Laporan</div>
+            </div>
+          </Link>
+        )}
+        {role !== 'bendahara' && (
+          <Link href="/pengurus/data-warga">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--gray100)' }}>📋</div>
+              <div className="mi-lbl">Data Warga</div>
+            </div>
+          </Link>
+        )}
+        {role !== 'bendahara' && (
+          <Link href="/pengurus/pengumuman-kelola">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--orange-l)' }}>📢</div>
+              <div className="mi-lbl">Pengumuman</div>
+            </div>
+          </Link>
+        )}
+        {(role === 'ketua' || role === 'admin') && (
+          <Link href="/pengurus/inventaris-kelola">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--gold-l)' }}>📦</div>
+              <div className="mi-lbl">Inventaris</div>
+            </div>
+          </Link>
+        )}
+        {(role === 'ketua' || role === 'bendahara' || role === 'admin') && (
+          <Link href="/pengurus/dana-sosial">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--teal-l)' }}>🤝</div>
+              <div className="mi-lbl">Dana Sosial</div>
+            </div>
+          </Link>
         )}
         {role === 'admin' && (
-          <div className="menu-item" style={{ opacity: 0.55 }}>
-            <div className="mi-ico" style={{ background: 'var(--orange-l)' }}>⚙️</div>
-            <div className="mi-lbl">Pengaturan</div>
-          </div>
+          <Link href="/pengurus/admin/settings">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--orange-l)' }}>⚙️</div>
+              <div className="mi-lbl">Pengaturan RT</div>
+            </div>
+          </Link>
         )}
-      </div>
-
-      <div className="ib blue" style={{ marginTop: 16 }}>
-        <span>🚧</span>
-        <div>Fitur detail pengurus (proses surat, verifikasi pembayaran, kelola kas, dll.) sedang dikembangkan dan akan segera tersedia.</div>
-      </div>
-
-      <div style={{ marginTop: 20, textAlign: 'center' }}>
-        <Link href="/" style={{ fontSize: 13, fontWeight: 700, color: 'var(--g600)', textDecoration: 'none' }}>
-          ← Kembali ke beranda
-        </Link>
+        {role === 'admin' && (
+          <Link href="/pengurus/admin/akun">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--purple-l)' }}>👤</div>
+              <div className="mi-lbl">Kelola Akun</div>
+            </div>
+          </Link>
+        )}
       </div>
     </>
   )

@@ -1,0 +1,48 @@
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { verifyJwt } from '@/lib/auth/jwt'
+import { db } from '@/lib/db'
+import { warga, iuranSettings } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import DanaSosialClient from './DanaSosialClient'
+import Link from 'next/link'
+
+export default async function DanaSosialPage() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('session')?.value
+  if (!token) redirect('/')
+  const payload = await verifyJwt(token)
+  if (!payload || !['ketua', 'bendahara', 'admin'].includes(payload.role)) redirect('/pengurus')
+
+  const [wargaList, settings] = await Promise.all([
+    db.select().from(warga)
+      .where(eq(warga.rtGroupId, payload.rtGroupId!))
+      .orderBy(warga.noRumah),
+    db.select().from(iuranSettings)
+      .where(eq(iuranSettings.rtGroupId, payload.rtGroupId!))
+      .limit(1),
+  ])
+
+  const kepalaKk = wargaList.filter(w => w.kkStatus === 'kepala_kk')
+  const alokasiSosial = settings[0]?.alokasiSosial ?? 0
+
+  return (
+    <>
+      <div className="sec-h" style={{ marginBottom: 16 }}>
+        <div className="t"><span className="em">🤝</span> Dana Sosial</div>
+        <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
+      </div>
+      <DanaSosialClient
+        items={kepalaKk.map(w => ({
+          id: w.id,
+          nama: w.namaLengkap,
+          noRumah: w.noRumah,
+          statusSosial: w.statusSosial,
+          dansosKelahiranTerpakai: w.dansosKelahiranTerpakai ?? 0,
+          dansosSakitTerpakai: w.dansosSakitTerpakai ?? 0,
+        }))}
+        alokasiSosial={alokasiSosial}
+      />
+    </>
+  )
+}

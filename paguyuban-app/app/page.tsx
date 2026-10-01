@@ -43,24 +43,28 @@ export default async function HomePage() {
     let rtStats = { jumlahWarga: 0, jumlahKk: 0 }
 
     if (defaultRt) {
-      const [pengumumanRaw, inventarisRaw, wargaCount] = await Promise.all([
-        db.select().from(pengumuman)
-          .where(and(eq(pengumuman.rtGroupId, defaultRt.id), eq(pengumuman.isPublished, true)))
-          .orderBy(desc(pengumuman.createdAt)).limit(3),
-        db.select().from(inventaris).where(eq(inventaris.rtGroupId, defaultRt.id)),
-        db.select({ c: count() }).from(warga).where(eq(warga.rtGroupId, defaultRt.id)),
-      ])
-      guestPengumuman = pengumumanRaw.map(p => ({
-        id: p.id, judul: p.judul, isi: p.isi, kategori: p.kategori,
-        prioritas: p.prioritas, createdAt: p.createdAt.toISOString(),
-      }))
-      guestInventaris = inventarisRaw.map(i => ({
-        id: i.id, nama: i.nama, hargaSewa: i.hargaSewa,
-        stok: i.stok, fotoUrl: i.fotoUrl, deskripsi: i.deskripsi,
-      }))
-      rtStats = {
-        jumlahWarga: wargaCount[0]?.c ?? 0,
-        jumlahKk: defaultRt.jumlahKk ?? 0,
+      try {
+        const [pengumumanRaw, inventarisRaw, wargaCount] = await Promise.all([
+          db.select().from(pengumuman)
+            .where(and(eq(pengumuman.rtGroupId, defaultRt.id), eq(pengumuman.isPublished, true)))
+            .orderBy(desc(pengumuman.createdAt)).limit(3),
+          db.select().from(inventaris).where(eq(inventaris.rtGroupId, defaultRt.id)),
+          db.select({ c: count() }).from(warga).where(eq(warga.rtGroupId, defaultRt.id)),
+        ])
+        guestPengumuman = pengumumanRaw.map(p => ({
+          id: p.id, judul: p.judul, isi: p.isi, kategori: p.kategori,
+          prioritas: p.prioritas, createdAt: p.createdAt.toISOString(),
+        }))
+        guestInventaris = inventarisRaw.map(i => ({
+          id: i.id, nama: i.nama, hargaSewa: i.hargaSewa,
+          stok: i.stok, fotoUrl: i.fotoUrl, deskripsi: i.deskripsi,
+        }))
+        rtStats = {
+          jumlahWarga: wargaCount[0]?.c ?? 0,
+          jumlahKk: defaultRt.jumlahKk ?? 0,
+        }
+      } catch {
+        // Tables not yet migrated — degrade gracefully
       }
     }
 
@@ -79,18 +83,27 @@ export default async function HomePage() {
   }
 
   // Authenticated warga — dashboard
-  const [pengumumanList, invoiceList, lastTransRes] = await Promise.all([
-    db.select().from(pengumuman)
-      .where(and(eq(pengumuman.rtGroupId, profile.rtGroupId!), eq(pengumuman.isPublished, true)))
-      .orderBy(desc(pengumuman.createdAt)).limit(3),
-    db.select().from(iuranInvoices)
-      .where(and(eq(iuranInvoices.wargaId, profile.id), eq(iuranInvoices.status, 'belum_bayar')))
-      .limit(10),
-    db.select().from(transaksi)
-      .where(eq(transaksi.rtGroupId, profile.rtGroupId!))
-      .orderBy(desc(transaksi.createdAt)).limit(1),
-  ])
-  const saldoKas = lastTransRes[0]?.saldoSetelah ?? null
+  let pengumumanList: (typeof pengumuman.$inferSelect)[] = []
+  let invoiceList: (typeof iuranInvoices.$inferSelect)[] = []
+  let saldoKas: number | null = null
+  try {
+    const [pList, iList, lastTransRes] = await Promise.all([
+      db.select().from(pengumuman)
+        .where(and(eq(pengumuman.rtGroupId, profile.rtGroupId!), eq(pengumuman.isPublished, true)))
+        .orderBy(desc(pengumuman.createdAt)).limit(3),
+      db.select().from(iuranInvoices)
+        .where(and(eq(iuranInvoices.wargaId, profile.id), eq(iuranInvoices.status, 'belum_bayar')))
+        .limit(10),
+      db.select().from(transaksi)
+        .where(eq(transaksi.rtGroupId, profile.rtGroupId!))
+        .orderBy(desc(transaksi.createdAt)).limit(1),
+    ])
+    pengumumanList = pList
+    invoiceList = iList
+    saldoKas = lastTransRes[0]?.saldoSetelah ?? null
+  } catch {
+    // Tables not yet migrated — degrade gracefully
+  }
 
   const totalTagihan = invoiceList.reduce((s, i) => s + (i.nominal || 0), 0)
 

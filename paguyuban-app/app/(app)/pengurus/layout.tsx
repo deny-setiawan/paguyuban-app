@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 
-const PENGURUS_ROLES = ['ketua', 'sekretaris', 'bendahara', 'admin']
+const PENGURUS_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
 
 export default async function PengurusLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()

@@ -35,7 +35,8 @@ export default async function HomePage() {
   }
 
   // Redirect pengurus ke dashboard mereka
-  if (profile && ['ketua', 'sekretaris', 'bendahara', 'admin'].includes(profile.role)) {
+  const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+  if (profile && pengurusRoles.includes(profile.role)) {
     redirect('/pengurus')
   }
 

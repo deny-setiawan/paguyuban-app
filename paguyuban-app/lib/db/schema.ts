@@ -1,6 +1,6 @@
 import { pgTable, text, integer, boolean, timestamp, uuid, pgEnum, varchar, jsonb } from 'drizzle-orm/pg-core'
 
-export const roleEnum = pgEnum('role', ['tamu', 'warga', 'ketua', 'sekretaris', 'bendahara', 'admin'])
+export const roleEnum = pgEnum('role', ['tamu', 'warga', 'ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin'])
 export const statusVerifEnum = pgEnum('status_verif', ['pending', 'disetujui', 'ditolak'])
 export const statusInvoiceEnum = pgEnum('status_invoice', ['belum_bayar', 'lunas', 'dibebaskan'])
 export const statusSuratEnum = pgEnum('status_surat', ['diajukan', 'diproses', 'selesai', 'ditolak'])

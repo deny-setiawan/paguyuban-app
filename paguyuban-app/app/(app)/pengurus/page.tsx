@@ -9,14 +9,22 @@ import Link from 'next/link'
 import {
   Crown, ClipboardList, Wallet, Shield, Users, Mail, CreditCard,
   FileText, Package, Settings, User, Megaphone, BarChart2,
-  Clock, CheckCircle, Handshake,
+  Clock, CheckCircle, Handshake, UserCheck, Globe, Lock, Wrench,
+  Home, Bell, Car, Zap,
 } from 'lucide-react'
 
+const ALL_PENGURUS = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+
 const ROLE_INFO: Record<string, { label: string; Icon: React.ElementType }> = {
-  ketua:      { label: 'Ketua RT',   Icon: Crown },
-  sekretaris: { label: 'Sekretaris', Icon: ClipboardList },
-  bendahara:  { label: 'Bendahara',  Icon: Wallet },
-  admin:      { label: 'Admin',      Icon: Shield },
+  ketua:       { label: 'Ketua RT',          Icon: Crown },
+  wakil_ketua: { label: 'Wakil Ketua RT',    Icon: Crown },
+  sekretaris:  { label: 'Sekretaris',        Icon: ClipboardList },
+  bendahara:   { label: 'Bendahara',         Icon: Wallet },
+  humas:       { label: 'Humas',             Icon: Globe },
+  lingkungan:  { label: 'Seksi Lingkungan',  Icon: Zap },
+  keamanan:    { label: 'Seksi Keamanan',    Icon: Lock },
+  peralatan:   { label: 'Seksi Peralatan',   Icon: Wrench },
+  admin:       { label: 'Admin Sistem',      Icon: Shield },
 }
 
 export default async function PengurusPage() {
@@ -26,8 +34,7 @@ export default async function PengurusPage() {
   const payload = await verifyJwt(token)
   if (!payload) redirect('/')
 
-  const pengurusRoles = ['ketua', 'sekretaris', 'bendahara', 'admin']
-  if (!pengurusRoles.includes(payload.role)) redirect('/')
+  if (!ALL_PENGURUS.includes(payload.role)) redirect('/')
 
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, payload.sub)).limit(1)
   if (!profile) redirect('/')
@@ -70,9 +77,16 @@ export default async function PengurusPage() {
   }
 
   const role = payload.role
-  const roleInfo = ROLE_INFO[role] || { label: role, Icon: Shield }
+  const roleInfo = ROLE_INFO[role] || { label: role, Icon: UserCheck }
   const { label: roleLabel, Icon: RoleIcon } = roleInfo
   const totalPending = stats.pendingInvite + stats.pendingPayment + stats.pendingSurat + stats.pendingLaporan
+
+  const isAdmin = role === 'admin'
+  const isKetua = role === 'ketua' || role === 'wakil_ketua'
+  const isBendahara = role === 'bendahara'
+  const isSekretaris = role === 'sekretaris'
+  const isKeuangan = isBendahara || isKetua || isAdmin
+  const isFullAccess = isKetua || isAdmin
 
   return (
     <>
@@ -163,11 +177,12 @@ export default async function PengurusPage() {
         </>
       )}
 
+      {/* ── Menu Pengurus ── */}
       <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
         <div className="t"><Shield size={16} /> Menu Pengurus</div>
       </div>
       <div className="menu-grid">
-        {role !== 'bendahara' && (
+        {!isBendahara && (
           <Link href="/pengurus/verifikasi">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--gold-l)', position: 'relative' }}>
@@ -178,7 +193,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {role !== 'bendahara' && (
+        {(isFullAccess || isSekretaris) && (
           <Link href="/pengurus/surat-antrean">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--blue-l)', position: 'relative' }}>
@@ -189,7 +204,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
+        {isKeuangan && (
           <Link href="/pengurus/kas">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--g50)' }}><Wallet size={22} color="var(--g600)" /></div>
@@ -197,7 +212,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
+        {isKeuangan && (
           <Link href="/pengurus/verifikasi-bayar">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--teal-l)', position: 'relative' }}>
@@ -208,7 +223,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
+        {isKeuangan && (
           <Link href="/pengurus/tagihan">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={22} color="var(--g600)" /></div>
@@ -216,7 +231,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(role === 'ketua' || role === 'admin') && (
+        {(isFullAccess || isSekretaris) && (
           <Link href="/pengurus/laporan-masuk">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--purple-l)', position: 'relative' }}>
@@ -227,7 +242,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {role !== 'bendahara' && (
+        {!isBendahara && (
           <Link href="/pengurus/data-warga">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--gray100)' }}><ClipboardList size={22} color="var(--gray500)" /></div>
@@ -235,7 +250,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {role !== 'bendahara' && (
+        {(isFullAccess || isSekretaris) && (
           <Link href="/pengurus/pengumuman-kelola">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--orange-l)' }}><Megaphone size={22} color="var(--orange)" /></div>
@@ -243,7 +258,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(role === 'ketua' || role === 'admin') && (
+        {(isFullAccess) && (
           <Link href="/pengurus/inventaris-kelola">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
@@ -251,7 +266,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(role === 'ketua' || role === 'bendahara' || role === 'admin') && (
+        {isKeuangan && (
           <Link href="/pengurus/dana-sosial">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--teal-l)' }}><Handshake size={22} color="var(--teal)" /></div>
@@ -259,7 +274,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {role === 'admin' && (
+        {isAdmin && (
           <Link href="/pengurus/admin/settings">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--orange-l)' }}><Settings size={22} color="var(--orange)" /></div>
@@ -267,7 +282,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {role === 'admin' && (
+        {isAdmin && (
           <Link href="/pengurus/admin/akun">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--purple-l)' }}><User size={22} color="var(--purple)" /></div>
@@ -275,6 +290,61 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
+      </div>
+
+      {/* ── Menu sebagai Warga ── */}
+      <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
+        <div className="t"><Home size={16} /> Menu Warga</div>
+      </div>
+      <div className="menu-grid">
+        <Link href="/iuran">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={22} color="var(--g600)" /></div>
+            <div className="mi-lbl">Iuran Saya</div>
+          </div>
+        </Link>
+        <Link href="/pengumuman">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--orange-l)' }}><Bell size={22} color="var(--orange)" /></div>
+            <div className="mi-lbl">Pengumuman</div>
+          </div>
+        </Link>
+        <Link href="/keluarga">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--blue-l)' }}><Users size={22} color="var(--blue)" /></div>
+            <div className="mi-lbl">Keluarga</div>
+          </div>
+        </Link>
+        <Link href="/inventaris">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
+            <div className="mi-lbl">Inventaris</div>
+          </div>
+        </Link>
+        <Link href="/kendaraan">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--gray100)' }}><Car size={22} color="var(--gray500)" /></div>
+            <div className="mi-lbl">Kendaraan</div>
+          </div>
+        </Link>
+        <Link href="/laporan">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--purple-l)' }}><FileText size={22} color="var(--purple)" /></div>
+            <div className="mi-lbl">Laporan</div>
+          </div>
+        </Link>
+        <Link href="/surat">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--teal-l)' }}><Mail size={22} color="var(--teal)" /></div>
+            <div className="mi-lbl">Surat</div>
+          </div>
+        </Link>
+        <Link href="/profil">
+          <div className="menu-item">
+            <div className="mi-ico" style={{ background: 'var(--gray100)' }}><User size={22} color="var(--gray500)" /></div>
+            <div className="mi-lbl">Profil</div>
+          </div>
+        </Link>
       </div>
     </>
   )

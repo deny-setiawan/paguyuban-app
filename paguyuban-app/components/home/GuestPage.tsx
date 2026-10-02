@@ -214,12 +214,15 @@ export default function GuestPage({
     try {
       let fotoUrls: string[] = []
       if (fotoFiles.length > 0) {
-        const fd = new FormData()
-        fotoFiles.forEach(f => fd.append('files', f))
-        const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
-        const uploadData = await uploadRes.json()
-        if (!uploadRes.ok) throw new Error(uploadData.error || 'Gagal upload foto')
-        fotoUrls = uploadData.urls
+        try {
+          const fd = new FormData()
+          fotoFiles.forEach(f => fd.append('files', f))
+          const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
+          const uploadData = await uploadRes.json()
+          if (uploadRes.ok && uploadData.urls) fotoUrls = uploadData.urls
+        } catch {
+          // Upload failed — proceed without photos
+        }
       }
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

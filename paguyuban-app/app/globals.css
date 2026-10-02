@@ -195,6 +195,11 @@ body{font-family:var(--f);min-height:100vh;background:var(--gray200);color:var(-
   display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px}
 .btn-primary:active{opacity:.88}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{border:1.5px solid var(--gray200);background:#fff;border-radius:8px;font:700 12px var(--f);color:var(--gray700);cursor:pointer;padding:5px 12px;display:inline-flex;align-items:center;gap:4px}
+.btn-ghost:hover{background:var(--gray100)}
+.btn-ghost:disabled{opacity:.5;cursor:not-allowed}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-spin{width:32px;height:32px;border:3px solid var(--gray200);border-top-color:var(--g500);border-radius:50%;animation:spin .7s linear infinite}
 .ib{border-radius:var(--r12);padding:11px 13px;display:flex;gap:9px;align-items:flex-start;font-size:11.5px;line-height:1.55}
 .ib.blue{background:var(--blue-l);border-left:3px solid var(--blue);color:#1e3a5f}
 .ib.green{background:var(--g50);border-left:3px solid var(--g400);color:var(--g800)}

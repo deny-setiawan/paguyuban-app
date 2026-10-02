@@ -13,14 +13,24 @@ interface AkunItem {
   createdAt: string
 }
 
-const ROLES = ['warga', 'ketua', 'sekretaris', 'bendahara', 'admin']
+const ROLES = ['warga', 'ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+const ROLE_LABEL: Record<string, string> = {
+  warga: 'Warga', ketua: 'Ketua', wakil_ketua: 'Wakil Ketua',
+  sekretaris: 'Sekretaris', bendahara: 'Bendahara',
+  humas: 'Humas', lingkungan: 'Lingkungan', keamanan: 'Keamanan',
+  peralatan: 'Peralatan', admin: 'Admin',
+}
 const ROLE_COLOR: Record<string, string> = {
-  warga: 'var(--gray100)', ketua: 'var(--g50)', sekretaris: 'var(--blue-l)',
-  bendahara: 'var(--gold-l)', admin: 'var(--purple-l)',
+  warga: 'var(--gray100)', ketua: 'var(--g50)', wakil_ketua: 'var(--g50)',
+  sekretaris: 'var(--blue-l)', bendahara: 'var(--gold-l)',
+  humas: 'var(--orange-l)', lingkungan: 'var(--teal-l)', keamanan: 'var(--red-l)',
+  peralatan: 'var(--purple-l)', admin: 'var(--purple-l)',
 }
 const ROLE_ICON_COLOR: Record<string, string> = {
-  warga: 'var(--gray500)', ketua: 'var(--g600)', sekretaris: 'var(--blue)',
-  bendahara: 'var(--gold)', admin: 'var(--purple)',
+  warga: 'var(--gray500)', ketua: 'var(--g600)', wakil_ketua: 'var(--g600)',
+  sekretaris: 'var(--blue)', bendahara: 'var(--gold)',
+  humas: 'var(--orange)', lingkungan: 'var(--teal)', keamanan: 'var(--red)',
+  peralatan: 'var(--purple)', admin: 'var(--purple)',
 }
 
 export default function AdminAkunClient({ items, currentUserId }: { items: AkunItem[], currentUserId: string }) {
@@ -84,9 +94,8 @@ export default function AdminAkunClient({ items, currentUserId }: { items: AkunI
                       padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
                       background: selectedRole === r ? 'var(--g600)' : 'var(--gray100)',
                       color: selectedRole === r ? 'white' : 'var(--gray700)',
-                      textTransform: 'capitalize',
                     }}>
-                    {r}
+                    {ROLE_LABEL[r] || r}
                   </button>
                 ))}
               </div>
@@ -136,7 +145,7 @@ export default function AdminAkunClient({ items, currentUserId }: { items: AkunI
               <div className="pi-body">
                 <div className="pi-t">
                   {a.fullName || a.phone}
-                  <span className="pill" style={{ background: ROLE_COLOR[a.role], color: 'var(--gray700)', textTransform: 'capitalize' }}>{a.role}</span>
+                  <span className="pill" style={{ background: ROLE_COLOR[a.role] || 'var(--gray100)', color: 'var(--gray700)' }}>{ROLE_LABEL[a.role] || a.role}</span>
                   {!a.isActive && <span className="pill" style={{ background: 'var(--red-l)', color: 'var(--red)' }}>Nonaktif</span>}
                 </div>
                 <div className="pi-d">{a.phone} · No. {a.noRumah || '-'}</div>

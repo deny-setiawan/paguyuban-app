@@ -4,21 +4,23 @@ import { signJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { normalizePhone } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {
     const { phone, otp } = await request.json()
     if (!phone || !otp) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
 
-    const valid = await verifyOtp(phone, otp)
+    const normalized = normalizePhone(phone)
+    const valid = await verifyOtp(normalized, otp)
     if (!valid) {
       return NextResponse.json({ error: 'Kode OTP salah atau sudah kadaluarsa' }, { status: 401 })
     }
 
-    // Get or create profile
-    let [profile] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1)
+    // Get or create profile (always use normalized phone)
+    let [profile] = await db.select().from(profiles).where(eq(profiles.phone, normalized)).limit(1)
     if (!profile) {
-      const [created] = await db.insert(profiles).values({ phone, role: 'tamu' }).returning()
+      const [created] = await db.insert(profiles).values({ phone: normalized, role: 'tamu' }).returning()
       profile = created
     }
 

@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+a{text-decoration:none;color:inherit}
 :root{
   --g900:#08112b;--g800:#122f82;--g700:#163aa2;--g600:#1944bd;
   --g500:#2355e1;--g400:#5077e7;--g200:#a5b9f3;--g100:#d2dcf9;--g50:#edf1fd;

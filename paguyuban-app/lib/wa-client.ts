@@ -1,5 +1,5 @@
 export async function sendWhatsAppOtp(phone: string, otp: string): Promise<boolean> {
-  const url = process.env.WA_OTP_SERVICE_URL
+  let url = process.env.WA_OTP_SERVICE_URL
   const secret = process.env.WA_OTP_INTERNAL_SECRET
 
   if (!url || !secret) {
@@ -7,6 +7,12 @@ export async function sendWhatsAppOtp(phone: string, otp: string): Promise<boole
     console.log(`[DEV] OTP for ${phone}: ${otp}`)
     return true
   }
+
+  // Normalize: ensure https:// prefix
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`
+  }
+  url = url.replace(/\/$/, '') // strip trailing slash
 
   try {
     const res = await fetch(`${url}/send-otp`, {

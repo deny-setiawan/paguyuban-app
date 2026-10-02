@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { Users, User, CheckCircle, XCircle } from 'lucide-react'
 
 interface InviteItem {
   id: string
@@ -48,7 +49,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   if (list.length === 0) {
     return (
       <div className="empty">
-        <div className="e-i">👥</div>
+        <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Users size={38} color="var(--gray400)" /></div>
         <div className="e-t">Belum ada pendaftaran</div>
         <div className="e-d">Pendaftaran warga baru akan muncul di sini</div>
       </div>
@@ -80,15 +81,15 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             )}
             {canApprove && detail.status === 'pending' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-                <button className="btn-primary" style={{ flex: 1 }}
+                <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   disabled={!!loading}
                   onClick={() => handleAction(detail.id, 'approve')}>
-                  {loading === detail.id + 'approve' ? '...' : '✅ Setujui'}
+                  {loading === detail.id + 'approve' ? '...' : <><CheckCircle size={14} /> Setujui</>}
                 </button>
-                <button className="btn-ghost" style={{ flex: 1, color: 'var(--red)' }}
+                <button className="btn-ghost" style={{ flex: 1, color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   disabled={!!loading}
                   onClick={() => handleAction(detail.id, 'reject')}>
-                  {loading === detail.id + 'reject' ? '...' : '❌ Tolak'}
+                  {loading === detail.id + 'reject' ? '...' : <><XCircle size={14} /> Tolak</>}
                 </button>
               </div>
             )}
@@ -104,7 +105,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
           <div className="peng-card" style={{ marginBottom: 16 }}>
             {pending.map(item => (
               <div key={item.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => setDetail(item)}>
-                <div className="pi-ico" style={{ background: 'var(--gold-l)' }}>👤</div>
+                <div className="pi-ico" style={{ background: 'var(--gold-l)' }}><User size={18} color="var(--gold)" /></div>
                 <div className="pi-body">
                   <div className="pi-t">{item.nama} <span className="pill menunggu">Pending</span></div>
                   <div className="pi-d">No. {item.noRumah || '-'} · {item.anggota?.length ? `${item.anggota.length + 1} jiwa` : '1 jiwa'}</div>
@@ -124,7 +125,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
               const st = STATUS_STYLE[item.status] || STATUS_STYLE.pending
               return (
                 <div key={item.id} className="peng-item" style={{ cursor: 'pointer', opacity: 0.75 }} onClick={() => setDetail(item)}>
-                  <div className="pi-ico" style={{ background: st.bg }}>👤</div>
+                  <div className="pi-ico" style={{ background: st.bg }}><User size={18} color={st.color} /></div>
                   <div className="pi-body">
                     <div className="pi-t">{item.nama} <span className="pill" style={{ background: st.bg, color: st.color }}>{st.label}</span></div>
                     <div className="pi-d">No. {item.noRumah || '-'}</div>

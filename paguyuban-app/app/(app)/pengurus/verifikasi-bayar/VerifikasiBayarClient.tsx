@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { rupiah, timeAgo } from '@/lib/utils'
+import { CreditCard, CheckCircle, XCircle, Paperclip } from 'lucide-react'
 
 interface PaymentItem {
   id: string
@@ -38,7 +39,7 @@ export default function VerifikasiBayarClient({ items }: { items: PaymentItem[] 
   if (list.length === 0) {
     return (
       <div className="empty">
-        <div className="e-i">💳</div>
+        <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><CreditCard size={38} color="var(--gray400)" /></div>
         <div className="e-t">Tidak ada pembayaran menunggu</div>
         <div className="e-d">Pembayaran transfer yang perlu diverifikasi akan muncul di sini</div>
       </div>
@@ -59,8 +60,8 @@ export default function VerifikasiBayarClient({ items }: { items: PaymentItem[] 
             {detail.buktiUrl && (
               <div style={{ marginBottom: 12 }}>
                 <a href={detail.buktiUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 13, color: 'var(--g600)', fontWeight: 700, textDecoration: 'none' }}>
-                  📎 Lihat Bukti Transfer ↗
+                  style={{ fontSize: 13, color: 'var(--g600)', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Paperclip size={14} /> Lihat Bukti Transfer ↗
                 </a>
               </div>
             )}
@@ -69,13 +70,13 @@ export default function VerifikasiBayarClient({ items }: { items: PaymentItem[] 
               <input className="inp" value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Catatan untuk warga..." />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button className="btn-primary" style={{ flex: 1 }}
+              <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 disabled={!!loading} onClick={() => handleAction(detail.id, 'approve')}>
-                {loading === detail.id + 'approve' ? '...' : '✅ Setujui'}
+                {loading === detail.id + 'approve' ? '...' : <><CheckCircle size={14} /> Setujui</>}
               </button>
-              <button className="btn-ghost" style={{ flex: 1, color: 'var(--red)' }}
+              <button className="btn-ghost" style={{ flex: 1, color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 disabled={!!loading} onClick={() => handleAction(detail.id, 'reject')}>
-                {loading === detail.id + 'reject' ? '...' : '❌ Tolak'}
+                {loading === detail.id + 'reject' ? '...' : <><XCircle size={14} /> Tolak</>}
               </button>
             </div>
           </div>
@@ -85,7 +86,7 @@ export default function VerifikasiBayarClient({ items }: { items: PaymentItem[] 
       <div className="peng-card">
         {list.map(item => (
           <div key={item.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => setDetail(item)}>
-            <div className="pi-ico" style={{ background: 'var(--g50)' }}>💳</div>
+            <div className="pi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={18} color="var(--g600)" /></div>
             <div className="pi-body">
               <div className="pi-t">{item.nama} <span className="pill menunggu">Pending</span></div>
               <div className="pi-d">{item.periode} · {rupiah(item.nominal)}</div>

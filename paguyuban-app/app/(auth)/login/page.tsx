@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { normalizePhone } from '@/lib/utils'
+import { Building2, Smartphone, AlertTriangle, Clock, Send } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,7 +39,7 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
-        <div className="auth-logo">🏘️</div>
+        <div className="auth-logo"><Building2 size={36} color="var(--g600)" /></div>
         <h1 className="auth-t">Masuk ke Paguyuban</h1>
         <p className="auth-d">Masukkan nomor WhatsApp Anda untuk menerima kode OTP</p>
 
@@ -56,14 +57,14 @@ export default function LoginPage() {
           />
           {error && (
             <div className="ib red" style={{ marginTop: 10 }}>
-              <span>⚠️</span><div>{error}</div>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} /><div>{error}</div>
             </div>
           )}
           <p className="auth-hint">
             Kode OTP akan dikirim via WhatsApp ke nomor ini. Pastikan WhatsApp aktif.
           </p>
           <button type="submit" className="btn-p" disabled={loading}>
-            {loading ? '⏳ Mengirim OTP…' : '📱 Kirim Kode OTP'}
+            {loading ? <><Clock size={16} /> Mengirim OTP…</> : <><Send size={16} /> Kirim Kode OTP</>}
           </button>
         </form>
 

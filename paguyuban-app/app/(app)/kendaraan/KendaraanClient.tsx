@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { Car, Bike, Truck, Save, AlertTriangle, CheckCircle } from 'lucide-react'
 
 interface KendaraanItem {
   id: string
@@ -22,14 +23,17 @@ interface Props {
 }
 
 const JENIS_OPTIONS = [
-  { val: 'motor', lbl: '🏍️ Motor' },
-  { val: 'mobil', lbl: '🚗 Mobil' },
-  { val: 'truk', lbl: '🚚 Truk' },
-  { val: 'lainnya', lbl: '🚘 Lainnya' },
+  { val: 'motor', lbl: 'Motor' },
+  { val: 'mobil', lbl: 'Mobil' },
+  { val: 'truk', lbl: 'Truk' },
+  { val: 'lainnya', lbl: 'Lainnya' },
 ]
 
-const JENIS_ICO: Record<string, string> = {
-  motor: '🏍️', mobil: '🚗', truk: '🚚', lainnya: '🚘',
+const JENIS_ICON: Record<string, React.ReactNode> = {
+  motor: <Bike size={22} color="var(--gray600)" />,
+  mobil: <Car size={22} color="var(--gray600)" />,
+  truk: <Truck size={22} color="var(--gray600)" />,
+  lainnya: <Car size={22} color="var(--gray600)" />,
 }
 
 export default function KendaraanClient({ items }: Props) {
@@ -60,7 +64,7 @@ export default function KendaraanClient({ items }: Props) {
   const isPajakHampirExpired = (tgl: string | null) => {
     if (!tgl) return false
     const diff = new Date(tgl).getTime() - Date.now()
-    return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000 // within 30 days
+    return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000
   }
 
   const isPajakExpired = (tgl: string | null) => {
@@ -70,13 +74,11 @@ export default function KendaraanClient({ items }: Props) {
 
   return (
     <>
-      {/* Sheet mask */}
       {showForm && <div className="sheet-mask show" onClick={() => setShowForm(false)} />}
 
-      {/* Add form sheet */}
       <div className={`sheet${showForm ? ' show' : ''}`} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="sheet-grip" />
-        <div className="sheet-h">🚗 Tambah Kendaraan</div>
+        <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Car size={18} /> Tambah Kendaraan</div>
 
         <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Jenis Kendaraan</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -119,23 +121,18 @@ export default function KendaraanClient({ items }: Props) {
 
         {msg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10 }}>{msg}</div>}
         <button className="btn-p" onClick={submitKendaraan} disabled={loading}>
-          {loading ? 'Menyimpan…' : '💾 Simpan Kendaraan'}
+          {loading ? 'Menyimpan…' : <><Save size={16} /> Simpan Kendaraan</>}
         </button>
         <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8 }} onClick={() => setShowForm(false)}>Batal</button>
       </div>
 
-      {/* Add button */}
-      <button
-        className="btn-p"
-        style={{ marginBottom: 16 }}
-        onClick={() => setShowForm(true)}
-      >
+      <button className="btn-p" style={{ marginBottom: 16 }} onClick={() => setShowForm(true)}>
         + Tambah Kendaraan
       </button>
 
       {localItems.length === 0 ? (
         <div className="empty">
-          <div className="e-i">🚗</div>
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Car size={38} color="var(--gray400)" /></div>
           <div className="e-t">Belum ada kendaraan</div>
           <div className="e-d">Daftarkan kendaraan Anda untuk kelengkapan data RT.</div>
         </div>
@@ -147,8 +144,8 @@ export default function KendaraanClient({ items }: Props) {
             return (
               <div key={k.id} className="peng-card" style={{ padding: 0 }}>
                 <div className="peng-item" style={{ cursor: 'default', padding: '14px 16px' }}>
-                  <div className="pi-ico" style={{ background: 'var(--gray100)', fontSize: 22 }}>
-                    {JENIS_ICO[k.jenis] || '🚗'}
+                  <div className="pi-ico" style={{ background: 'var(--gray100)' }}>
+                    {JENIS_ICON[k.jenis] || <Car size={22} color="var(--gray600)" />}
                   </div>
                   <div className="pi-body">
                     <div className="pi-t" style={{ fontSize: 15, fontWeight: 800 }}>
@@ -160,8 +157,9 @@ export default function KendaraanClient({ items }: Props) {
                     </div>
                     {k.namaPemilik && <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>A.n. {k.namaPemilik}</div>}
                     {k.pajakBerlakuSampai && (
-                      <div style={{ fontSize: 12, marginTop: 4, fontWeight: 700, color: expired ? 'var(--red)' : hampirExpired ? 'var(--gold)' : 'var(--gray500)' }}>
-                        {expired ? '⚠️ Pajak kedaluwarsa' : hampirExpired ? '⚠️ Pajak segera habis' : '✅ Pajak aktif'}
+                      <div style={{ fontSize: 12, marginTop: 4, fontWeight: 700, color: expired ? 'var(--red)' : hampirExpired ? 'var(--gold)' : 'var(--gray500)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {expired ? <AlertTriangle size={12} /> : hampirExpired ? <AlertTriangle size={12} /> : <CheckCircle size={12} />}
+                        {expired ? 'Pajak kedaluwarsa' : hampirExpired ? 'Pajak segera habis' : 'Pajak aktif'}
                         {' · '}{new Date(k.pajakBerlakuSampai).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     )}

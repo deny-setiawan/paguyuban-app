@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { rupiah, BULAN } from '@/lib/utils'
 import type { IuranInvoice, IuranPayment } from '@/lib/db/schema'
+import { CreditCard, CheckCircle, XCircle, Clock, Banknote, ClipboardList, Building2, Info } from 'lucide-react'
 
 interface Props {
   invoices: IuranInvoice[]
@@ -80,7 +81,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      showToast(`✅ Pembayaran ${data.jumlah} tagihan terkirim, menunggu verifikasi`)
+      showToast(`Pembayaran ${data.jumlah} tagihan terkirim, menunggu verifikasi`)
       setShowSheet(false)
       setSelected(new Set())
       setBuktiUrl('')
@@ -90,7 +91,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
       const reloaded = await reload.json()
       if (reloaded.invoices) setLocalInvoices(reloaded.invoices)
     } catch (e: unknown) {
-      showToast(`❌ ${e instanceof Error ? e.message : 'Gagal mengirim pembayaran'}`)
+      showToast(e instanceof Error ? e.message : 'Gagal mengirim pembayaran')
     } finally {
       setLoading(false)
     }
@@ -124,16 +125,16 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
         <>
           {unpaid.length === 0 && paid.length === 0 ? (
             <div className="empty">
-              <div className="e-i">💳</div>
+              <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><CreditCard size={38} color="var(--gray400)" /></div>
               <div className="e-t">Belum ada tagihan</div>
               <div className="e-d">Tagihan iuran bulanan akan muncul di sini setelah dikeluarkan oleh pengurus.</div>
             </div>
           ) : unpaid.length === 0 ? (
             <div className="status-banner aktif">
-              <div className="sb-ico">✅</div>
+              <div className="sb-ico"><CheckCircle size={24} /></div>
               <div className="sb-txt">
                 <div className="sb-l1">Semua iuran lunas</div>
-                <div className="sb-l2">Terima kasih atas kontribusi Anda! 🎉</div>
+                <div className="sb-l2">Terima kasih atas kontribusi Anda!</div>
               </div>
             </div>
           ) : (
@@ -192,7 +193,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
                     className="btn-p"
                     onClick={() => setShowSheet(true)}
                   >
-                    💵 Bayar {selected.size} tagihan · {rupiah(totalSelected)}
+                    <Banknote size={16} /> Bayar {selected.size} tagihan · {rupiah(totalSelected)}
                   </button>
                 </div>
               )}
@@ -202,12 +203,12 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
           {paid.length > 0 && (
             <>
               <div className="sec-h">
-                <div className="t"><span className="em">✅</span> Sudah lunas</div>
+                <div className="t"><CheckCircle size={16} /> Sudah lunas</div>
               </div>
               <div className="peng-card">
                 {paid.map(inv => (
                   <div key={inv.id} className="peng-item" style={{ cursor: 'default' }}>
-                    <div className="pi-ico" style={{ background: 'var(--g50)' }}>✅</div>
+                    <div className="pi-ico" style={{ background: 'var(--g50)' }}><CheckCircle size={18} color="var(--g600)" /></div>
                     <div className="pi-body">
                       <div className="pi-t">
                         Iuran {BULAN[inv.periodeBulan]} {inv.periodeTahun}
@@ -230,7 +231,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
       {tab === 'riwayat' && (
         payments.length === 0 ? (
           <div className="empty">
-            <div className="e-i">📋</div>
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><ClipboardList size={38} color="var(--gray400)" /></div>
             <div className="e-t">Belum ada riwayat pembayaran</div>
             <div className="e-d">Riwayat pembayaran yang sudah diverifikasi akan muncul di sini.</div>
           </div>
@@ -240,8 +241,8 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
               const st = STATUS_PAYMENT[p.statusVerif] || { label: p.statusVerif, cls: '' }
               return (
                 <div key={p.id} className="peng-item" style={{ cursor: 'default' }}>
-                  <div className="pi-ico" style={{ background: st.cls === 'lunas' ? 'var(--g50)' : 'var(--gold-l)' }}>
-                    {st.cls === 'lunas' ? '✅' : st.cls === 'ditolak' ? '❌' : '⏳'}
+                  <div className="pi-ico" style={{ background: st.cls === 'lunas' ? 'var(--g50)' : st.cls === 'ditolak' ? 'var(--red-l)' : 'var(--gold-l)' }}>
+                    {st.cls === 'lunas' ? <CheckCircle size={18} color="var(--g600)" /> : st.cls === 'ditolak' ? <XCircle size={18} color="var(--red)" /> : <Clock size={18} color="var(--gold)" />}
                   </div>
                   <div className="pi-body">
                     <div className="pi-t">
@@ -270,7 +271,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
       {/* Payment sheet */}
       <div className={`sheet${showSheet ? ' show' : ''}`}>
         <div className="sheet-grip" />
-        <div className="sheet-h">💵 Konfirmasi Pembayaran</div>
+        <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Banknote size={18} /> Konfirmasi Pembayaran</div>
         <div className="sheet-d">
           {selectedInvoices.length} tagihan · Total {rupiah(totalSelected)}
         </div>
@@ -295,7 +296,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
           {(['transfer', 'tunai'] as const).map(m => (
             <label key={m} className="nb-seg" style={{ cursor: 'pointer' }}>
               <input type="radio" checked={metode === m} onChange={() => setMetode(m)} />
-              {m === 'transfer' ? '🏦 Transfer' : '💵 Tunai'}
+              {m === 'transfer' ? 'Transfer Bank' : 'Tunai'}
             </label>
           ))}
         </div>
@@ -304,7 +305,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
           <>
             {(rtBank || rtRekening) && (
               <div className="ib blue" style={{ marginBottom: 12 }}>
-                <span>🏦</span>
+                <Building2 size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                 <div>
                   Transfer ke: <b>{rtBank || 'Bank'}</b><br />
                   No. Rek: <b>{rtRekening || '-'}</b> a.n. <b>{rtAtasNama || '-'}</b>
@@ -323,7 +324,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
 
         {metode === 'tunai' && (
           <div className="ib gold" style={{ marginBottom: 12 }}>
-            <span>💵</span>
+            <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>Pembayaran tunai akan dikonfirmasi langsung oleh Bendahara RT saat menerima uang.</div>
           </div>
         )}
@@ -342,7 +343,7 @@ export default function IuranClient({ invoices, payments, rtBank, rtRekening, rt
           disabled={loading}
           style={{ marginTop: 8 }}
         >
-          {loading ? 'Mengirim...' : `✅ Kirim Pembayaran · ${rupiah(totalSelected)}`}
+          {loading ? 'Mengirim...' : <><CheckCircle size={16} /> Kirim Pembayaran · {rupiah(totalSelected)}</>}
         </button>
       </div>
     </>

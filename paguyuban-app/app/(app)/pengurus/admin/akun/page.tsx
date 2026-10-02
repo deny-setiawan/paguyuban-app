@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
+import { User } from 'lucide-react'
 import { eq } from 'drizzle-orm'
 import AdminAkunClient from './AdminAkunClient'
 import Link from 'next/link'
@@ -27,7 +28,7 @@ export default async function AdminAkunPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">👤</span> Kelola Akun ({list.length})</div>
+        <div className="t"><User size={16} /> Kelola Akun ({list.length})</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <AdminAkunClient items={list.map(p => ({

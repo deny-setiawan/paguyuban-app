@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { FileText, Wrench, Lock, Sparkles, Users, Wallet, ClipboardList, CheckCircle } from 'lucide-react'
 
 interface LaporanItem {
   id: string
@@ -14,10 +15,36 @@ interface LaporanItem {
   createdAt: string
 }
 
-const KAT_ICO: Record<string, string> = {
-  infrastruktur: '🔧', keamanan: '🔒', kebersihan: '🧹',
-  sosial: '🤝', keuangan: '💰', lainnya: '📋',
+function KatIcon({ kat, size = 18, bg }: { kat: string; size?: number; bg: string }) {
+  const style = { color: 'inherit' } as React.CSSProperties
+  switch (kat) {
+    case 'infrastruktur': return <Wrench size={size} style={style} />
+    case 'keamanan': return <Lock size={size} style={style} />
+    case 'kebersihan': return <Sparkles size={size} style={style} />
+    case 'sosial': return <Users size={size} style={style} />
+    case 'keuangan': return <Wallet size={size} style={style} />
+    default: return <ClipboardList size={size} style={style} />
+  }
 }
+
+const KAT_BG: Record<string, string> = {
+  infrastruktur: 'var(--blue-l)',
+  keamanan: 'var(--red-l)',
+  kebersihan: 'var(--g50)',
+  sosial: 'var(--teal-l)',
+  keuangan: 'var(--gold-l)',
+  lainnya: 'var(--gray100)',
+}
+
+const KAT_COLOR: Record<string, string> = {
+  infrastruktur: 'var(--blue)',
+  keamanan: 'var(--red)',
+  kebersihan: 'var(--g600)',
+  sosial: 'var(--teal)',
+  keuangan: 'var(--gold)',
+  lainnya: 'var(--gray500)',
+}
+
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   menunggu: { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'Menunggu' },
   diproses: { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Diproses' },
@@ -49,7 +76,7 @@ export default function LaporanMasukClient({ items }: { items: LaporanItem[] }) 
   if (list.length === 0) {
     return (
       <div className="empty">
-        <div className="e-i">📝</div>
+        <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><FileText size={38} color="var(--gray400)" /></div>
         <div className="e-t">Tidak ada laporan masuk</div>
         <div className="e-d">Laporan dari warga akan muncul di sini</div>
       </div>
@@ -72,13 +99,15 @@ export default function LaporanMasukClient({ items }: { items: LaporanItem[] }) 
                 placeholder="Tulis tanggapan pengurus..." style={{ resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button className="btn-primary" style={{ flex: 1 }} disabled={loading || !tanggapan.trim()}
+              <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                disabled={loading || !tanggapan.trim()}
                 onClick={() => respond(detail.id, 'diproses')}>
-                {loading ? '...' : '📋 Tandai Diproses'}
+                {loading ? '...' : <><ClipboardList size={14} /> Tandai Diproses</>}
               </button>
-              <button className="btn-primary" style={{ flex: 1 }} disabled={loading}
+              <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                disabled={loading}
                 onClick={() => respond(detail.id, 'selesai')}>
-                {loading ? '...' : '✅ Selesaikan'}
+                {loading ? '...' : <><CheckCircle size={14} /> Selesaikan</>}
               </button>
             </div>
           </div>
@@ -88,10 +117,13 @@ export default function LaporanMasukClient({ items }: { items: LaporanItem[] }) 
       <div className="peng-card">
         {list.map(item => {
           const st = STATUS_STYLE[item.status] || STATUS_STYLE.menunggu
-          const ico = KAT_ICO[item.kategori] || '📋'
+          const bg = KAT_BG[item.kategori] || 'var(--gray100)'
+          const color = KAT_COLOR[item.kategori] || 'var(--gray500)'
           return (
             <div key={item.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => { setDetail(item); setTanggapan(item.tanggapan || '') }}>
-              <div className="pi-ico" style={{ background: st.bg }}>{ico}</div>
+              <div className="pi-ico" style={{ background: bg, color }}>
+                <KatIcon kat={item.kategori} size={18} bg={bg} />
+              </div>
               <div className="pi-body">
                 <div className="pi-t">
                   {item.judul}

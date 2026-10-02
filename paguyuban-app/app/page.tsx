@@ -10,6 +10,10 @@ import TopBar from '@/components/layout/TopBar'
 import BottomNav from '@/components/layout/BottomNav'
 import GuestPage from '@/components/home/GuestPage'
 import { rupiah, timeAgo } from '@/lib/utils'
+import {
+  CreditCard, Wallet, Zap, Megaphone, AlertTriangle, Calendar,
+  Clock, Users, Mail, Car, Package, FileText, Inbox, Banknote,
+} from 'lucide-react'
 
 export default async function HomePage() {
   const cookieStore = await cookies()
@@ -107,6 +111,16 @@ export default async function HomePage() {
 
   const totalTagihan = invoiceList.reduce((s, i) => s + (i.nominal || 0), 0)
 
+  const menuItems = [
+    { href: '/iuran', icon: <CreditCard size={22} color="var(--g600)" />, bg: 'var(--g50)', lbl: 'Iuran' },
+    { href: '/pengumuman', icon: <Megaphone size={22} color="var(--orange)" />, bg: 'var(--orange-l)', lbl: 'Pengumuman' },
+    { href: '/keluarga', icon: <Users size={22} color="var(--blue)" />, bg: 'var(--blue-l)', lbl: 'Keluarga' },
+    { href: '/laporan', icon: <FileText size={22} color="var(--purple)" />, bg: 'var(--purple-l)', lbl: 'Layanan' },
+    { href: '/surat', icon: <Mail size={22} color="var(--teal)" />, bg: 'var(--teal-l)', lbl: 'Surat' },
+    { href: '/kendaraan', icon: <Car size={22} color="var(--gray500)" />, bg: 'var(--gray100)', lbl: 'Kendaraan' },
+    { href: '/inventaris', icon: <Package size={22} color="var(--gold)" />, bg: 'var(--gold-l)', lbl: 'Inventaris' },
+  ]
+
   return (
     <Shell>
       <TopBar
@@ -118,7 +132,7 @@ export default async function HomePage() {
       <div className="body">
         {!profile.isActive && (
           <div className="status-banner pending">
-            <div className="sb-ico">⏳</div>
+            <div className="sb-ico"><Clock size={24} /></div>
             <div className="sb-txt">
               <div className="sb-l1">Menunggu persetujuan Ketua RT</div>
               <div className="sb-l2">Akun Anda sedang ditinjau. Beberapa fitur aktif setelah disetujui.</div>
@@ -129,29 +143,29 @@ export default async function HomePage() {
         {/* Iuran card */}
         <div>
           <div className="sec-h" style={{ marginBottom: 10 }}>
-            <div className="t"><span className="em">💳</span> Iuran saya</div>
+            <div className="t"><CreditCard size={16} /> Iuran saya</div>
             <Link href="/iuran" className="more">Rincian ›</Link>
           </div>
           {invoiceList.length > 0 ? (
             <div className="iuran-card nunggak">
               <div className="ic-top">
-                <div className="l">💳 Iuran belum dibayar</div>
+                <div className="l"><CreditCard size={14} /> Iuran belum dibayar</div>
                 <span className="ic-badge">{invoiceList.length} bulan</span>
               </div>
               <div className="ic-amt">{rupiah(totalTagihan)}</div>
               <div className="ic-sub">Segera lunasi agar fitur tetap aktif</div>
               <Link href="/iuran">
-                <button className="ic-btn">💵 Lihat &amp; bayar</button>
+                <button className="ic-btn"><Banknote size={16} /> Lihat &amp; bayar</button>
               </Link>
             </div>
           ) : (
             <div className="iuran-card lunas">
               <div className="ic-top">
-                <div className="l">💳 Status iuran</div>
+                <div className="l"><CreditCard size={14} /> Status iuran</div>
                 <span className="ic-badge">✓ LUNAS</span>
               </div>
               <div className="ic-amt">Rp 0</div>
-              <div className="ic-sub">🎉 Semua iuran sudah lunas. Terima kasih! 🙏</div>
+              <div className="ic-sub">Semua iuran sudah lunas. Terima kasih!</div>
             </div>
           )}
         </div>
@@ -160,7 +174,7 @@ export default async function HomePage() {
         {saldoKas !== null && (
           <div>
             <div className="sec-h" style={{ marginBottom: 10 }}>
-              <div className="t"><span className="em">💰</span> Kas RT</div>
+              <div className="t"><Wallet size={16} /> Kas RT</div>
             </div>
             <div className="rl-st">
               <div>
@@ -178,21 +192,13 @@ export default async function HomePage() {
         {/* Menu warga */}
         <div>
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">⚡</span> Menu warga</div>
+            <div className="t"><Zap size={16} /> Menu warga</div>
           </div>
           <div className="menu-grid">
-            {[
-              { href: '/iuran', ico: '💳', bg: 'var(--g50)', lbl: 'Iuran' },
-              { href: '/pengumuman', ico: '📢', bg: 'var(--orange-l)', lbl: 'Pengumuman' },
-              { href: '/keluarga', ico: '👨‍👩‍👧', bg: 'var(--blue-l)', lbl: 'Keluarga' },
-              { href: '/laporan', ico: '📝', bg: 'var(--purple-l)', lbl: 'Layanan' },
-              { href: '/surat', ico: '✉️', bg: 'var(--teal-l)', lbl: 'Surat' },
-              { href: '/kendaraan', ico: '🚗', bg: 'var(--gray100)', lbl: 'Kendaraan' },
-              { href: '/inventaris', ico: '📦', bg: 'var(--gold-l)', lbl: 'Inventaris' },
-            ].map(m => (
+            {menuItems.map(m => (
               <Link key={m.href} href={m.href}>
                 <div className="menu-item">
-                  <div className="mi-ico" style={{ background: m.bg }}>{m.ico}</div>
+                  <div className="mi-ico" style={{ background: m.bg }}>{m.icon}</div>
                   <div className="mi-lbl">{m.lbl}</div>
                 </div>
               </Link>
@@ -203,13 +209,13 @@ export default async function HomePage() {
         {/* Pengumuman */}
         <div>
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">📢</span> Pengumuman RT</div>
+            <div className="t"><Megaphone size={16} /> Pengumuman RT</div>
             <Link href="/pengumuman" className="more">Semua ›</Link>
           </div>
           {pengumumanList.length === 0 ? (
             <div className="peng-card">
               <div className="empty">
-                <div className="e-i">📭</div>
+                <div className="e-i"><Inbox size={38} color="var(--gray400)" /></div>
                 <div className="e-t">Belum ada pengumuman</div>
                 <div className="e-d">Info dari Ketua RT akan muncul di sini</div>
               </div>
@@ -218,12 +224,12 @@ export default async function HomePage() {
             <div className="peng-card">
               {pengumumanList.map(p => {
                 const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
-                const ico = pri ? '⚠️' : p.kategori === 'acara' ? '📅' : '📢'
+                const IcoEl = pri ? <AlertTriangle size={18} color="var(--red)" /> : p.kategori === 'acara' ? <Calendar size={18} color="var(--blue)" /> : <Megaphone size={18} color="var(--orange)" />
                 const bg = pri ? 'var(--red-l)' : p.kategori === 'acara' ? 'var(--blue-l)' : 'var(--orange-l)'
                 return (
                   <Link key={p.id} href={`/pengumuman/${p.id}`}>
                     <div className="peng-item">
-                      <div className="pi-ico" style={{ background: bg }}>{ico}</div>
+                      <div className="pi-ico" style={{ background: bg }}>{IcoEl}</div>
                       <div className="pi-body">
                         <div className="pi-t">
                           {p.judul}

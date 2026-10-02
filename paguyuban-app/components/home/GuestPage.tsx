@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { greet, rupiah, timeAgo } from '@/lib/utils'
+import {
+  User, MapPin, Lock, Home, ClipboardList, Package, CreditCard,
+  Mail, FileText, AlertTriangle, Calendar, Megaphone, Zap,
+  BarChart2, Info, Send, CheckCircle, RefreshCw, ArrowLeft,
+} from 'lucide-react'
 
 interface PengumumanItem {
   id: string
@@ -196,7 +201,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
       {/* TopBar — guest */}
       <div className="topbar">
         <div className="tb-top">
-          <div className="tb-av">👤</div>
+          <div className="tb-av"><User size={20} /></div>
           <div className="tb-hi">
             <div className="g">{greeting}</div>
             <div className="n">Selamat datang</div>
@@ -207,20 +212,21 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
               height: 38, padding: '0 14px', border: '1px solid rgba(255,255,255,.22)',
               borderRadius: 12, background: 'rgba(255,255,255,.18)', color: '#fff',
               fontFamily: 'var(--f)', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
             }}
           >
-            🔒 Masuk
+            <Lock size={14} /> Masuk
           </button>
         </div>
         <div className="tb-rt">
-          <span className="tb-chip">📍 {rtName}</span>
+          <span className="tb-chip"><MapPin size={12} /> {rtName}</span>
         </div>
       </div>
 
       <div className="body">
         {/* Banner pemutakhiran */}
         <div className="status-banner aktif" style={{ cursor: 'pointer' }} onClick={() => openSheet('wargaBaru', 'pemutakhiran')}>
-          <div className="sb-ico">📋</div>
+          <div className="sb-ico"><ClipboardList size={24} /></div>
           <div className="sb-txt">
             <div className="sb-l1">Program Pemutakhiran Data Warga 2026</div>
             <div className="sb-l2">Perbarui data KK & anggota keluarga Anda. Klik untuk mulai.</div>
@@ -230,7 +236,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         {/* Banner warga baru */}
         <div className="status-banner pending" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="sb-ico">🏠</div>
+            <div className="sb-ico"><Home size={24} /></div>
             <div className="sb-txt">
               <div className="sb-l1">Warga baru? Daftar sekarang</div>
               <div className="sb-l2">Isi data KK untuk akses iuran, surat, dan layanan RT.</div>
@@ -239,13 +245,13 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="btn-p"
-              style={{ flex: 1, height: 44, background: 'linear-gradient(135deg,#b7791f,var(--gold))' }}
+              style={{ flex: 1, height: 44, background: 'linear-gradient(135deg,#b7791f,var(--gold))', gap: 6 }}
               onClick={() => openSheet('wargaBaru', 'warga_baru')}
             >
-              📝 Daftar warga baru
+              <FileText size={16} /> Daftar warga baru
             </button>
-            <button className="rl-b" style={{ height: 44, padding: '0 16px' }} onClick={() => openSheet('login')}>
-              🔒 Login
+            <button className="rl-b" style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => openSheet('login')}>
+              <Lock size={14} /> Login
             </button>
           </div>
         </div>
@@ -253,7 +259,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         {/* Ringkasan RT */}
         <div>
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">📊</span> Ringkasan RT</div>
+            <div className="t"><BarChart2 size={16} /> Ringkasan RT</div>
           </div>
           <div className="rl-st">
             <div>
@@ -273,31 +279,31 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
               <span>Saldo kas</span>
             </div>
           </div>
-          <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--gray400)', marginTop: 8 }}>
-            🔒 Login untuk melihat saldo kas RT
+          <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--gray400)', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <Lock size={10} /> Login untuk melihat saldo kas RT
           </div>
         </div>
 
         {/* Menu layanan */}
         <div>
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">⚡</span> Layanan umum</div>
+            <div className="t"><Zap size={16} /> Layanan umum</div>
           </div>
           <div className="menu-grid">
             <div className="menu-item" onClick={() => openSheet('inventaris')}>
-              <div className="mi-ico" style={{ background: 'var(--gold-l)' }}>📦</div>
+              <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
               <div className="mi-lbl">Inventaris</div>
             </div>
             <div className="menu-item" style={{ opacity: 0.45 }} onClick={() => openSheet('login')}>
-              <div className="mi-ico" style={{ background: 'var(--g50)' }}>💳</div>
+              <div className="mi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={22} color="var(--g600)" /></div>
               <div className="mi-lbl">Iuran</div>
             </div>
             <div className="menu-item" style={{ opacity: 0.45 }} onClick={() => openSheet('login')}>
-              <div className="mi-ico" style={{ background: 'var(--teal-l)' }}>✉️</div>
+              <div className="mi-ico" style={{ background: 'var(--teal-l)' }}><Mail size={22} color="var(--teal)" /></div>
               <div className="mi-lbl">Surat</div>
             </div>
             <div className="menu-item" style={{ opacity: 0.45 }} onClick={() => openSheet('login')}>
-              <div className="mi-ico" style={{ background: 'var(--purple-l)' }}>📝</div>
+              <div className="mi-ico" style={{ background: 'var(--purple-l)' }}><FileText size={22} color="var(--purple)" /></div>
               <div className="mi-lbl">Layanan</div>
             </div>
           </div>
@@ -307,16 +313,20 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         {pengumuman.length > 0 && (
           <div>
             <div className="sec-h" style={{ marginBottom: 12 }}>
-              <div className="t"><span className="em">📢</span> Pengumuman RT</div>
+              <div className="t"><Megaphone size={16} /> Pengumuman RT</div>
             </div>
             <div className="peng-card">
               {pengumuman.map(p => {
                 const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
-                const ico = pri ? '⚠️' : p.kategori === 'acara' ? '📅' : '📢'
+                const IcoEl = pri
+                  ? <AlertTriangle size={18} color="var(--red)" />
+                  : p.kategori === 'acara'
+                    ? <Calendar size={18} color="var(--blue)" />
+                    : <Megaphone size={18} color="var(--orange)" />
                 const bg = pri ? 'var(--red-l)' : p.kategori === 'acara' ? 'var(--blue-l)' : 'var(--orange-l)'
                 return (
                   <div key={p.id} className="peng-item">
-                    <div className="pi-ico" style={{ background: bg }}>{ico}</div>
+                    <div className="pi-ico" style={{ background: bg }}>{IcoEl}</div>
                     <div className="pi-body">
                       <div className="pi-t">
                         {p.judul}
@@ -336,7 +346,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         {inventaris.length > 0 && (
           <div>
             <div className="sec-h" style={{ marginBottom: 12 }}>
-              <div className="t"><span className="em">📦</span> Inventaris RT</div>
+              <div className="t"><Package size={16} /> Inventaris RT</div>
               <button
                 style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: 'var(--g600)', cursor: 'pointer', fontFamily: 'var(--f)' }}
                 onClick={() => openSheet('inventaris')}
@@ -352,7 +362,9 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                   onClick={() => { if ((item.stok || 0) > 0) { setSewaItem(item); openSheet('inventaris') } }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📦</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Package size={22} color="var(--gold)" />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--gray800)' }}>{item.nama}</div>
                       <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>
@@ -376,7 +388,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
       {/* ── Login Sheet ── */}
       <div className={`sheet${sheet === 'login' ? ' show' : ''}`}>
         <div className="sheet-grip" />
-        <div className="sheet-h">🔒 Masuk sebagai warga</div>
+        <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Lock size={18} /> Masuk sebagai warga</div>
         <div className="sheet-d">Masukkan nomor HP kepala keluarga yang sudah terdaftar. Kode OTP dikirim via WhatsApp.</div>
         <input
           className="rl-in" inputMode="tel" placeholder="Nomor HP, mis. 0812xxxxxxxx"
@@ -385,11 +397,12 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           autoFocus={sheet === 'login'}
         />
         {msg && <div style={{ fontSize: 11.5, color: 'var(--red)', margin: '-4px 0 8px' }}>{msg}</div>}
-        <button className="btn-p" onClick={sendOtp} disabled={loading}>
-          {loading ? 'Mengirim…' : '📨 Kirim OTP via WhatsApp'}
+        <button className="btn-p" onClick={sendOtp} disabled={loading} style={{ gap: 8 }}>
+          {loading ? 'Mengirim…' : <><Send size={16} /> Kirim OTP via WhatsApp</>}
         </button>
         <div className="ib blue" style={{ marginTop: 12 }}>
-          <span>ℹ️</span><div>Kode OTP 6 digit akan dikirim ke nomor WhatsApp Anda.</div>
+          <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>Kode OTP 6 digit akan dikirim ke nomor WhatsApp Anda.</div>
         </div>
         <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 10 }} onClick={closeSheet}>Batal</button>
       </div>
@@ -397,7 +410,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
       {/* ── OTP Sheet ── */}
       <div className={`sheet${sheet === 'otp' ? ' show' : ''}`}>
         <div className="sheet-grip" />
-        <div className="sheet-h">📨 Masukkan kode OTP</div>
+        <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Send size={18} /> Masukkan kode OTP</div>
         <div className="sheet-d">
           Kode 6 digit dikirim ke {maskPhone(phone)}
           {countdown > 0 && <span style={{ color: 'var(--g600)', fontWeight: 700 }}> · {fmtCountdown(countdown)}</span>}
@@ -410,12 +423,16 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           style={{ letterSpacing: 8, textAlign: 'center', fontSize: 24, fontWeight: 800 }}
         />
         {msg && <div style={{ fontSize: 11.5, color: 'var(--red)', margin: '-4px 0 8px' }}>{msg}</div>}
-        <button className="btn-p" onClick={verifyOtp} disabled={loading}>
-          {loading ? 'Memverifikasi…' : '✅ Verifikasi & masuk'}
+        <button className="btn-p" onClick={verifyOtp} disabled={loading} style={{ gap: 8 }}>
+          {loading ? 'Memverifikasi…' : <><CheckCircle size={16} /> Verifikasi & masuk</>}
         </button>
-        <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 10 }} onClick={() => { setSheet('login'); setOtp(''); setMsg('') }}>← Ganti nomor</button>
+        <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 10 }} onClick={() => { setSheet('login'); setOtp(''); setMsg('') }}>
+          <ArrowLeft size={14} style={{ marginRight: 4 }} /> Ganti nomor
+        </button>
         {countdown === 0 && (
-          <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8 }} onClick={() => { sendOtp(); setOtp('') }} disabled={loading}>🔄 Kirim ulang OTP</button>
+          <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => { sendOtp(); setOtp('') }} disabled={loading}>
+            <RefreshCw size={14} /> Kirim ulang OTP
+          </button>
         )}
       </div>
 
@@ -424,7 +441,9 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         <div className="sheet-grip" />
         {nbStep === 99 ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+              <CheckCircle size={52} color="var(--g500)" />
+            </div>
             <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--gray800)', marginBottom: 8 }}>
               {nbMode === 'warga_baru' ? 'Pendaftaran Terkirim!' : 'Pemutakhiran Terkirim!'}
             </div>
@@ -436,8 +455,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           </div>
         ) : (
           <>
-            <div className="sheet-h">
-              {nbMode === 'warga_baru' ? '📝 Pendaftaran Warga Baru' : '📋 Pemutakhiran Data Warga'}
+            <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {nbMode === 'warga_baru' ? <><FileText size={18} /> Pendaftaran Warga Baru</> : <><ClipboardList size={18} /> Pemutakhiran Data Warga</>}
             </div>
             {/* Step progress */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
@@ -495,7 +514,10 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
             {/* Step 2 */}
             {nbStep === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div className="ib blue"><span>ℹ️</span><div>Tambahkan anggota keluarga selain kepala KK (opsional).</div></div>
+                <div className="ib blue">
+                  <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>Tambahkan anggota keluarga selain kepala KK (opsional).</div>
+                </div>
                 {anggotaList.map((a, i) => (
                   <div key={i} style={{ border: '1.5px solid var(--gray200)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
@@ -532,7 +554,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
             {nbStep === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="ib blue">
-                  <span>ℹ️</span>
+                  <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                   <div>Pastikan data sudah benar. Pengurus RT akan meninjau dan menghubungi Anda via WhatsApp untuk verifikasi dokumen (KTP & KK).</div>
                 </div>
                 <div style={{ background: 'var(--gray50)', borderRadius: 12, padding: '12px 4px' }}>
@@ -559,8 +581,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                   Lanjut →
                 </button>
               ) : (
-                <button className="btn-p" style={{ flex: 1, height: 48 }} onClick={submitWargaBaru} disabled={nbLoading}>
-                  {nbLoading ? 'Mengirim…' : '✅ Kirim Pendaftaran'}
+                <button className="btn-p" style={{ flex: 1, height: 48, gap: 8 }} onClick={submitWargaBaru} disabled={nbLoading}>
+                  {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> Kirim Pendaftaran</>}
                 </button>
               )}
             </div>
@@ -575,13 +597,15 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         <div className="sheet-grip" />
         {sewaItem ? (
           <>
-            <button onClick={() => setSewaItem(null)} style={{ border: 'none', background: 'none', color: 'var(--g600)', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 8, padding: 0 }}>
-              ← Kembali ke daftar
+            <button onClick={() => setSewaItem(null)} style={{ border: 'none', background: 'none', color: 'var(--g600)', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 8, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <ArrowLeft size={14} /> Kembali ke daftar
             </button>
-            <div className="sheet-h">📦 {sewaItem.nama}</div>
+            <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Package size={18} /> {sewaItem.nama}</div>
             {sewaDone ? (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+                <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+                  <CheckCircle size={52} color="var(--g500)" />
+                </div>
                 <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--gray800)', marginBottom: 8 }}>Permintaan sewa terkirim!</div>
                 <div style={{ fontSize: 13, color: 'var(--gray500)' }}>Pengurus RT akan mengonfirmasi via WhatsApp.</div>
                 <button className="btn-p" style={{ marginTop: 20 }} onClick={closeSheet}>Tutup</button>
@@ -601,18 +625,18 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Rencana Tanggal Kembali</label>
                 <input className="rl-in" type="date" value={sewaTglKembali} onChange={e => setSewaTglKembali(e.target.value)} />
                 {sewaMsg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginBottom: 8 }}>{sewaMsg}</div>}
-                <button className="btn-p" onClick={submitSewa} disabled={sewaLoading}>
-                  {sewaLoading ? 'Memproses…' : '📦 Ajukan Pinjam / Sewa'}
+                <button className="btn-p" onClick={submitSewa} disabled={sewaLoading} style={{ gap: 8 }}>
+                  {sewaLoading ? 'Memproses…' : <><Package size={16} /> Ajukan Pinjam / Sewa</>}
                 </button>
               </>
             )}
           </>
         ) : (
           <>
-            <div className="sheet-h">📦 Inventaris RT</div>
+            <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Package size={18} /> Inventaris RT</div>
             {inventaris.length === 0 ? (
               <div className="empty">
-                <div className="e-i">📦</div>
+                <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Package size={38} color="var(--gray400)" /></div>
                 <div className="e-t">Belum ada inventaris</div>
                 <div className="e-d">Data barang inventaris RT belum tersedia.</div>
               </div>
@@ -623,7 +647,9 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                     style={{ cursor: (item.stok || 0) > 0 ? 'pointer' : 'default' }}
                     onClick={() => { if ((item.stok || 0) > 0) setSewaItem(item) }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📦</div>
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Package size={22} color="var(--gold)" />
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--gray800)' }}>{item.nama}</div>
                         {item.deskripsi && <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>{item.deskripsi}</div>}

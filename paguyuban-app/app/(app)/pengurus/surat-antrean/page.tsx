@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { surat, profiles } from '@/lib/db/schema'
+import { Mail } from 'lucide-react'
 import { and, eq, inArray, desc } from 'drizzle-orm'
 import SuratAntreanClient from './SuratAntreanClient'
 import Link from 'next/link'
@@ -31,7 +32,7 @@ export default async function SuratAntreanPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">✉️</span> Antrian Surat</div>
+        <div className="t"><Mail size={16} /> Antrian Surat</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <SuratAntreanClient items={list.map(r => ({

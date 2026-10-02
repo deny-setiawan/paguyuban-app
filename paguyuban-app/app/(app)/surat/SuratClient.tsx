@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { Mail, Home, ClipboardList, Briefcase, FileText, Clock, Send, ArrowLeft, Info } from 'lucide-react'
 
 interface SuratItem {
   id: string
@@ -17,10 +18,10 @@ interface Props {
 }
 
 const JENIS_OPTIONS = [
-  { val: 'pengantar', lbl: '📄 Surat Pengantar', desc: 'Pengantar RT untuk keperluan umum', ico: '📄', bg: 'var(--blue-l)' },
-  { val: 'domisili', lbl: '🏠 Surat Domisili', desc: 'Keterangan berdomisili di wilayah RT', ico: '🏠', bg: 'var(--g50)' },
-  { val: 'tidak_mampu', lbl: '📋 Surat Tidak Mampu', desc: 'Keterangan ekonomi tidak mampu', ico: '📋', bg: 'var(--gold-l)' },
-  { val: 'usaha', lbl: '💼 Surat Keterangan Usaha', desc: 'Keterangan usaha/bisnis warga', ico: '💼', bg: 'var(--purple-l)' },
+  { val: 'pengantar', lbl: 'Surat Pengantar', desc: 'Pengantar RT untuk keperluan umum', Icon: FileText, bg: 'var(--blue-l)', color: 'var(--blue)' },
+  { val: 'domisili', lbl: 'Surat Domisili', desc: 'Keterangan berdomisili di wilayah RT', Icon: Home, bg: 'var(--g50)', color: 'var(--g600)' },
+  { val: 'tidak_mampu', lbl: 'Surat Tidak Mampu', desc: 'Keterangan ekonomi tidak mampu', Icon: ClipboardList, bg: 'var(--gold-l)', color: 'var(--gold)' },
+  { val: 'usaha', lbl: 'Surat Keterangan Usaha', desc: 'Keterangan usaha/bisnis warga', Icon: Briefcase, bg: 'var(--purple-l)', color: 'var(--purple)' },
 ]
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -77,14 +78,14 @@ export default function SuratClient({ suratList }: Props) {
       {tab === 'pilih' && (
         <>
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">✉️</span> Pilih jenis surat</div>
+            <div className="t"><Mail size={16} /> Pilih jenis surat</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {JENIS_OPTIONS.map(j => (
               <div key={j.val} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => pilihJenis(j.val)}>
-                <div className="pi-ico" style={{ background: j.bg }}>{j.ico}</div>
+                <div className="pi-ico" style={{ background: j.bg }}><j.Icon size={18} color={j.color} /></div>
                 <div className="pi-body">
-                  <div className="pi-t">{j.lbl.replace(/^.+ /, '')}</div>
+                  <div className="pi-t">{j.lbl}</div>
                   <div className="pi-d">{j.desc}</div>
                 </div>
                 <div style={{ color: 'var(--gray400)', fontSize: 16 }}>›</div>
@@ -96,14 +97,19 @@ export default function SuratClient({ suratList }: Props) {
 
       {tab === 'form' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <button onClick={() => setTab('pilih')} style={{ border: 'none', background: 'none', color: 'var(--g600)', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, textAlign: 'left' }}>
-            ← Ganti jenis surat
+          <button onClick={() => setTab('pilih')} style={{ border: 'none', background: 'none', color: 'var(--g600)', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <ArrowLeft size={14} /> Ganti jenis surat
           </button>
 
-          <div className="ib blue">
-            <span>{JENIS_OPTIONS.find(j => j.val === jenis)?.ico}</span>
-            <div><b>{JENIS_OPTIONS.find(j => j.val === jenis)?.lbl}</b><br />{JENIS_OPTIONS.find(j => j.val === jenis)?.desc}</div>
-          </div>
+          {(() => {
+            const j = JENIS_OPTIONS.find(j => j.val === jenis)
+            return j ? (
+              <div className="ib blue">
+                <j.Icon size={14} color={j.color} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div><b>{j.lbl}</b><br />{j.desc}</div>
+              </div>
+            ) : null
+          })()}
 
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Keperluan / Tujuan *</label>
           <textarea
@@ -114,14 +120,14 @@ export default function SuratClient({ suratList }: Props) {
           />
 
           <div className="ib gold">
-            <span>⏱️</span>
+            <Clock size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>Surat biasanya diproses dalam 1-3 hari kerja oleh pengurus RT. Anda akan mendapat notifikasi saat surat siap.</div>
           </div>
 
           {msg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10 }}>{msg}</div>}
 
-          <button className="btn-p" onClick={submitSurat} disabled={loading}>
-            {loading ? 'Mengirim…' : '📨 Ajukan Surat'}
+          <button className="btn-p" onClick={submitSurat} disabled={loading} style={{ gap: 8 }}>
+            {loading ? 'Mengirim…' : <><Send size={16} /> Ajukan Surat</>}
           </button>
         </div>
       )}
@@ -129,7 +135,7 @@ export default function SuratClient({ suratList }: Props) {
       {tab === 'riwayat' && (
         localSurat.length === 0 ? (
           <div className="empty">
-            <div className="e-i">✉️</div>
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Mail size={38} color="var(--gray400)" /></div>
             <div className="e-t">Belum ada pengajuan surat</div>
             <div className="e-d">Ajukan surat keterangan RT untuk keperluan Anda.</div>
             <button className="btn-p" style={{ marginTop: 12 }} onClick={() => setTab('pilih')}>+ Ajukan Surat</button>
@@ -141,10 +147,12 @@ export default function SuratClient({ suratList }: Props) {
               const j = JENIS_OPTIONS.find(j => j.val === s.jenis)
               return (
                 <div key={s.id} className="peng-item" style={{ cursor: 'default' }}>
-                  <div className="pi-ico" style={{ background: j?.bg || 'var(--blue-l)' }}>{j?.ico || '✉️'}</div>
+                  <div className="pi-ico" style={{ background: j?.bg || 'var(--blue-l)' }}>
+                    {j ? <j.Icon size={18} color={j.color} /> : <Mail size={18} color="var(--blue)" />}
+                  </div>
                   <div className="pi-body">
                     <div className="pi-t">
-                      {j?.lbl.replace(/^.+ /, '') || s.jenis}
+                      {j?.lbl || s.jenis}
                       <span className={`pill ${st.cls}`}>{st.label}</span>
                     </div>
                     {s.keperluan && (

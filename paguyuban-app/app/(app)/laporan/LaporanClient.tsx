@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { FileText, Send, MessageSquare, CheckCircle } from 'lucide-react'
 
 interface LaporanItem {
   id: string
@@ -18,12 +19,12 @@ interface Props {
 }
 
 const KATEGORI_OPTIONS = [
-  { val: 'infrastruktur', lbl: '🏗️ Infrastruktur', desc: 'Jalan, selokan, fasilitas umum' },
-  { val: 'keamanan', lbl: '🔒 Keamanan', desc: 'Laporan gangguan keamanan' },
-  { val: 'kebersihan', lbl: '🌿 Kebersihan', desc: 'Sampah, kebersihan lingkungan' },
-  { val: 'sosial', lbl: '🤝 Sosial', desc: 'Permasalahan sosial warga' },
-  { val: 'keuangan', lbl: '💰 Keuangan', desc: 'Pertanyaan terkait kas RT' },
-  { val: 'lainnya', lbl: '📝 Lainnya', desc: 'Topik lain' },
+  { val: 'infrastruktur', lbl: 'Infrastruktur', desc: 'Jalan, selokan, fasilitas umum' },
+  { val: 'keamanan', lbl: 'Keamanan', desc: 'Laporan gangguan keamanan' },
+  { val: 'kebersihan', lbl: 'Kebersihan', desc: 'Sampah, kebersihan lingkungan' },
+  { val: 'sosial', lbl: 'Sosial', desc: 'Permasalahan sosial warga' },
+  { val: 'keuangan', lbl: 'Keuangan', desc: 'Pertanyaan terkait kas RT' },
+  { val: 'lainnya', lbl: 'Lainnya', desc: 'Topik lain' },
 ]
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -35,7 +36,6 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
 
 export default function LaporanClient({ laporan }: Props) {
   const [tab, setTab] = useState<'baru' | 'riwayat'>('riwayat')
-  const [showSheet, setShowSheet] = useState(false)
   const [kategori, setKategori] = useState('')
   const [judul, setJudul] = useState('')
   const [isi, setIsi] = useState('')
@@ -56,7 +56,7 @@ export default function LaporanClient({ laporan }: Props) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setLocalLaporan(prev => [data.laporan, ...prev])
-      setShowSheet(false); setKategori(''); setJudul(''); setIsi('')
+      setKategori(''); setJudul(''); setIsi('')
       setTab('riwayat')
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Gagal mengirim laporan')
@@ -83,7 +83,7 @@ export default function LaporanClient({ laporan }: Props) {
       {tab === 'riwayat' && (
         localLaporan.length === 0 ? (
           <div className="empty">
-            <div className="e-i">📝</div>
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><FileText size={38} color="var(--gray400)" /></div>
             <div className="e-t">Belum ada laporan</div>
             <div className="e-d">Laporkan masalah di lingkungan RT agar ditindaklanjuti pengurus.</div>
             <button className="btn-p" style={{ marginTop: 12 }} onClick={() => setTab('baru')}>+ Buat Laporan Baru</button>
@@ -94,7 +94,7 @@ export default function LaporanClient({ laporan }: Props) {
               const st = STATUS_MAP[l.status] || { label: l.status, cls: '' }
               return (
                 <div key={l.id} className="peng-item" style={{ cursor: 'default' }}>
-                  <div className="pi-ico" style={{ background: 'var(--purple-l)' }}>📝</div>
+                  <div className="pi-ico" style={{ background: 'var(--purple-l)' }}><FileText size={18} color="var(--purple)" /></div>
                   <div className="pi-body">
                     <div className="pi-t">
                       {l.judul}
@@ -104,7 +104,8 @@ export default function LaporanClient({ laporan }: Props) {
                     {l.isi && <div className="pi-d" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.isi}</div>}
                     {l.tanggapan && (
                       <div className="ib green" style={{ marginTop: 8, fontSize: 12 }}>
-                        <span>💬</span><div><b>Tanggapan pengurus:</b> {l.tanggapan}</div>
+                        <MessageSquare size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <div><b>Tanggapan pengurus:</b> {l.tanggapan}</div>
                       </div>
                     )}
                     <div className="pi-time">{timeAgo(l.createdAt)}</div>
@@ -119,7 +120,7 @@ export default function LaporanClient({ laporan }: Props) {
       {tab === 'baru' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="sec-h" style={{ marginBottom: 4 }}>
-            <div className="t"><span className="em">📝</span> Buat Laporan Baru</div>
+            <div className="t"><FileText size={16} /> Buat Laporan Baru</div>
           </div>
 
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Kategori Laporan *</label>
@@ -135,7 +136,7 @@ export default function LaporanClient({ laporan }: Props) {
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gray800)' }}>{k.lbl}</div>
                   <div style={{ fontSize: 12, color: 'var(--gray500)' }}>{k.desc}</div>
                 </div>
-                {kategori === k.val && <span style={{ color: 'var(--g500)', fontSize: 16 }}>✓</span>}
+                {kategori === k.val && <CheckCircle size={16} color="var(--g500)" />}
               </label>
             ))}
           </div>
@@ -152,7 +153,7 @@ export default function LaporanClient({ laporan }: Props) {
           {msg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10 }}>{msg}</div>}
 
           <button className="btn-p" onClick={submitLaporan} disabled={loading}>
-            {loading ? 'Mengirim…' : '📨 Kirim Laporan'}
+            {loading ? 'Mengirim…' : <><Send size={16} /> Kirim Laporan</>}
           </button>
         </div>
       )}

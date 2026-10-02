@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { User, Users, CheckCircle, XCircle, Save } from 'lucide-react'
 
 interface AkunItem {
   id: string
@@ -16,6 +17,10 @@ const ROLES = ['warga', 'ketua', 'sekretaris', 'bendahara', 'admin']
 const ROLE_COLOR: Record<string, string> = {
   warga: 'var(--gray100)', ketua: 'var(--g50)', sekretaris: 'var(--blue-l)',
   bendahara: 'var(--gold-l)', admin: 'var(--purple-l)',
+}
+const ROLE_ICON_COLOR: Record<string, string> = {
+  warga: 'var(--gray500)', ketua: 'var(--g600)', sekretaris: 'var(--blue)',
+  bendahara: 'var(--gold)', admin: 'var(--purple)',
 }
 
 export default function AdminAkunClient({ items, currentUserId }: { items: AkunItem[], currentUserId: string }) {
@@ -97,30 +102,37 @@ export default function AdminAkunClient({ items, currentUserId }: { items: AkunI
                       flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
                       background: selectedActive === v ? (v ? 'var(--g600)' : 'var(--red)') : 'var(--gray100)',
                       color: selectedActive === v ? 'white' : 'var(--gray700)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}>
-                    {v ? '✅ Aktif' : '🚫 Nonaktif'}
+                    {v ? <><CheckCircle size={13} /> Aktif</> : <><XCircle size={13} /> Nonaktif</>}
                   </button>
                 ))}
               </div>
             </div>
 
-            <button className="btn-primary" style={{ width: '100%' }} disabled={loading} onClick={saveChanges}>
-              {loading ? 'Menyimpan...' : '💾 Simpan Perubahan'}
+            <button className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              disabled={loading} onClick={saveChanges}>
+              {loading ? 'Menyimpan...' : <><Save size={14} /> Simpan Perubahan</>}
             </button>
           </div>
         </div>
       )}
 
       <input className="inp" value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="🔍 Cari nama, HP, atau no. rumah..." style={{ marginBottom: 16 }} />
+        placeholder="Cari nama, HP, atau no. rumah..." style={{ marginBottom: 16 }} />
 
       {filtered.length === 0 ? (
-        <div className="empty"><div className="e-i">👤</div><div className="e-t">Tidak ada akun ditemukan</div></div>
+        <div className="empty">
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Users size={38} color="var(--gray400)" /></div>
+          <div className="e-t">Tidak ada akun ditemukan</div>
+        </div>
       ) : (
         <div className="peng-card">
           {filtered.map(a => (
             <div key={a.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => openDetail(a)}>
-              <div className="pi-ico" style={{ background: ROLE_COLOR[a.role] || 'var(--gray100)' }}>👤</div>
+              <div className="pi-ico" style={{ background: ROLE_COLOR[a.role] || 'var(--gray100)' }}>
+                <User size={18} color={ROLE_ICON_COLOR[a.role] || 'var(--gray500)'} />
+              </div>
               <div className="pi-body">
                 <div className="pi-t">
                   {a.fullName || a.phone}

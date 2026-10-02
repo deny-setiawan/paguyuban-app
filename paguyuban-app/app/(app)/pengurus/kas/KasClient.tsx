@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { rupiah } from '@/lib/utils'
+import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 
 interface TransItem {
   id: string
@@ -90,8 +91,9 @@ export default function KasClient({ items, saldoKas, canEdit }: {
                       flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
                       background: form.jenis === j ? (j === 'pemasukan' ? 'var(--g600)' : 'var(--red)') : 'var(--gray100)',
                       color: form.jenis === j ? 'white' : 'var(--gray700)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}>
-                    {j === 'pemasukan' ? '⬆️ Pemasukan' : '⬇️ Pengeluaran'}
+                    {j === 'pemasukan' ? <><TrendingUp size={14} /> Pemasukan</> : <><TrendingDown size={14} /> Pengeluaran</>}
                   </button>
                 ))}
               </div>
@@ -115,7 +117,7 @@ export default function KasClient({ items, saldoKas, canEdit }: {
 
       {list.length === 0 ? (
         <div className="empty">
-          <div className="e-i">💰</div>
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Wallet size={38} color="var(--gray400)" /></div>
           <div className="e-t">Belum ada transaksi</div>
           <div className="e-d">Catat pemasukan dan pengeluaran kas RT di sini</div>
         </div>
@@ -124,7 +126,9 @@ export default function KasClient({ items, saldoKas, canEdit }: {
           {list.map(t => (
             <div key={t.id} className="peng-item" style={{ cursor: 'default' }}>
               <div className="pi-ico" style={{ background: t.jenis === 'pemasukan' ? 'var(--g50)' : 'var(--red-l)' }}>
-                {t.jenis === 'pemasukan' ? '⬆️' : '⬇️'}
+                {t.jenis === 'pemasukan'
+                  ? <TrendingUp size={18} color="var(--g600)" />
+                  : <TrendingDown size={18} color="var(--red)" />}
               </div>
               <div className="pi-body">
                 <div className="pi-t">

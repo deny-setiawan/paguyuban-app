@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { Megaphone, Pencil, Eye, EyeOff, Trash2 } from 'lucide-react'
 
 interface PItem {
   id: string
@@ -124,7 +125,7 @@ export default function PengumumanKelolaClient({ items }: { items: PItem[] }) {
 
       {list.length === 0 ? (
         <div className="empty">
-          <div className="e-i">📢</div>
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Megaphone size={38} color="var(--gray400)" /></div>
           <div className="e-t">Belum ada pengumuman</div>
           <div className="e-d">Buat pengumuman untuk warga RT</div>
         </div>
@@ -132,7 +133,9 @@ export default function PengumumanKelolaClient({ items }: { items: PItem[] }) {
         <div className="peng-card">
           {list.map(item => (
             <div key={item.id} className="peng-item" style={{ cursor: 'default' }}>
-              <div className="pi-ico" style={{ background: item.prioritas === 'penting' || item.prioritas === 'tinggi' ? 'var(--red-l)' : 'var(--orange-l)' }}>📢</div>
+              <div className="pi-ico" style={{ background: item.prioritas === 'penting' || item.prioritas === 'tinggi' ? 'var(--red-l)' : 'var(--orange-l)' }}>
+                <Megaphone size={18} color={item.prioritas === 'penting' || item.prioritas === 'tinggi' ? 'var(--red)' : 'var(--orange)'} />
+              </div>
               <div className="pi-body" style={{ flex: 1 }}>
                 <div className="pi-t">
                   {item.judul}
@@ -142,11 +145,15 @@ export default function PengumumanKelolaClient({ items }: { items: PItem[] }) {
                 {item.isi && <div className="pi-d">{item.isi.substring(0, 80)}{item.isi.length > 80 ? '...' : ''}</div>}
                 <div className="pi-time">{timeAgo(item.createdAt)}</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => openEdit(item)}>✏️ Edit</button>
-                  <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => togglePublish(item)}>
-                    {item.isPublished ? '🙈 Sembunyikan' : '👁 Publikasikan'}
+                  <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => openEdit(item)}>
+                    <Pencil size={12} /> Edit
                   </button>
-                  <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', color: 'var(--red)' }} onClick={() => deleteItem(item.id)}>🗑</button>
+                  <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => togglePublish(item)}>
+                    {item.isPublished ? <><EyeOff size={12} /> Sembunyikan</> : <><Eye size={12} /> Publikasikan</>}
+                  </button>
+                  <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => deleteItem(item.id)}>
+                    <Trash2 size={12} /> Hapus
+                  </button>
                 </div>
               </div>
             </div>

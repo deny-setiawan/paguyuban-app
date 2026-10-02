@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { MessageSquare, AlertTriangle, Clock, CheckCircle, RefreshCw } from 'lucide-react'
 
 export default function OtpPage() {
   const router = useRouter()
@@ -76,7 +77,7 @@ export default function OtpPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
-        <div className="auth-logo">💬</div>
+        <div className="auth-logo"><MessageSquare size={36} color="var(--g600)" /></div>
         <h1 className="auth-t">Masukkan Kode OTP</h1>
         <p className="auth-d">
           Kode 6 digit telah dikirim via WhatsApp ke<br />
@@ -97,7 +98,7 @@ export default function OtpPage() {
           />
           {error && (
             <div className="ib red" style={{ marginTop: 10, marginBottom: 10 }}>
-              <span>⚠️</span><div>{error}</div>
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} /><div>{error}</div>
             </div>
           )}
           <p className="auth-hint">
@@ -106,7 +107,7 @@ export default function OtpPage() {
               : 'Kode sudah kadaluarsa'}
           </p>
           <button type="submit" className="btn-p" disabled={loading || otp.length !== 6}>
-            {loading ? '⏳ Memverifikasi…' : '✅ Verifikasi'}
+            {loading ? <><Clock size={16} /> Memverifikasi…</> : <><CheckCircle size={16} /> Verifikasi</>}
           </button>
         </form>
 

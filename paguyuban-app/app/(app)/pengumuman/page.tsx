@@ -6,6 +6,7 @@ import { profiles, pengumuman } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { timeAgo } from '@/lib/utils'
+import { Inbox, AlertTriangle, Calendar, Wallet, Megaphone } from 'lucide-react'
 
 export default async function PengumumanPage() {
   const cookieStore = await cookies()
@@ -27,7 +28,7 @@ export default async function PengumumanPage() {
     <>
       {list.length === 0 ? (
         <div className="empty">
-          <div className="e-i">📭</div>
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Inbox size={38} color="var(--gray400)" /></div>
           <div className="e-t">Belum ada pengumuman</div>
           <div className="e-d">Info terbaru dari Ketua RT akan muncul di sini.</div>
         </div>
@@ -35,12 +36,16 @@ export default async function PengumumanPage() {
         <div className="peng-card">
           {list.map(p => {
             const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
-            const ico = pri ? '⚠️' : p.kategori === 'acara' ? '📅' : p.kategori === 'keuangan' ? '💰' : '📢'
             const bg = pri ? 'var(--red-l)' : p.kategori === 'acara' ? 'var(--blue-l)' : p.kategori === 'keuangan' ? 'var(--g50)' : 'var(--orange-l)'
+            const IcoEl = pri
+              ? <AlertTriangle size={18} color="var(--red)" />
+              : p.kategori === 'acara' ? <Calendar size={18} color="var(--blue)" />
+              : p.kategori === 'keuangan' ? <Wallet size={18} color="var(--g600)" />
+              : <Megaphone size={18} color="var(--orange)" />
             return (
               <Link key={p.id} href={`/pengumuman/${p.id}`}>
                 <div className="peng-item">
-                  <div className="pi-ico" style={{ background: bg }}>{ico}</div>
+                  <div className="pi-ico" style={{ background: bg }}>{IcoEl}</div>
                   <div className="pi-body">
                     <div className="pi-t">
                       {p.judul}

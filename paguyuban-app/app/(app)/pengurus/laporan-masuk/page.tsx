@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { laporanWarga, profiles } from '@/lib/db/schema'
+import { FileText } from 'lucide-react'
 import { and, eq, inArray, desc } from 'drizzle-orm'
 import LaporanMasukClient from './LaporanMasukClient'
 import Link from 'next/link'
@@ -30,7 +31,7 @@ export default async function LaporanMasukPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">📝</span> Laporan Masuk</div>
+        <div className="t"><FileText size={16} /> Laporan Masuk</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <LaporanMasukClient items={list.map(r => ({

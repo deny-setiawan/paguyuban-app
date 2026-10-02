@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { CheckCircle, Save } from 'lucide-react'
 
 interface RtData {
   id: string
@@ -51,7 +52,7 @@ export default function AdminSettingsClient({ rt }: { rt: RtData }) {
     <form onSubmit={submit}>
       {saved && (
         <div className="status-banner aktif" style={{ marginBottom: 16 }}>
-          <div className="sb-ico">✅</div>
+          <div className="sb-ico"><CheckCircle size={24} /></div>
           <div className="sb-txt"><div className="sb-l1">Pengaturan berhasil disimpan</div></div>
         </div>
       )}
@@ -87,8 +88,9 @@ export default function AdminSettingsClient({ rt }: { rt: RtData }) {
         </div>
       </div>
 
-      <button className="btn-primary" type="submit" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
-        {loading ? 'Menyimpan...' : '💾 Simpan Pengaturan'}
+      <button className="btn-primary" type="submit" style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+        disabled={loading}>
+        {loading ? 'Menyimpan...' : <><Save size={16} /> Simpan Pengaturan</>}
       </button>
     </form>
   )

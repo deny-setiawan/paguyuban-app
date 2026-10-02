@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { iuranPayments, iuranInvoices, profiles } from '@/lib/db/schema'
+import { CreditCard } from 'lucide-react'
 import { and, eq, desc } from 'drizzle-orm'
 import VerifikasiBayarClient from './VerifikasiBayarClient'
 import Link from 'next/link'
@@ -31,7 +32,7 @@ export default async function VerifikasiBayarPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">💳</span> Verifikasi Pembayaran</div>
+        <div className="t"><CreditCard size={16} /> Verifikasi Pembayaran</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <VerifikasiBayarClient items={list.map(r => ({

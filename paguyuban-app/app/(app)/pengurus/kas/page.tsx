@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { transaksi } from '@/lib/db/schema'
+import { Wallet } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import KasClient from './KasClient'
 import Link from 'next/link'
@@ -25,7 +26,7 @@ export default async function KasPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">💰</span> Kas RT</div>
+        <div className="t"><Wallet size={16} /> Kas RT</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <KasClient

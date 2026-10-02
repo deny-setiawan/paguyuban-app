@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { Mail, ClipboardList, CheckCircle } from 'lucide-react'
 
 interface SuratItem {
   id: string
@@ -53,7 +54,7 @@ export default function SuratAntreanClient({ items }: { items: SuratItem[] }) {
   if (list.length === 0) {
     return (
       <div className="empty">
-        <div className="e-i">✉️</div>
+        <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Mail size={38} color="var(--gray400)" /></div>
         <div className="e-t">Tidak ada antrian surat</div>
         <div className="e-d">Pengajuan surat dari warga akan muncul di sini</div>
       </div>
@@ -82,14 +83,16 @@ export default function SuratAntreanClient({ items }: { items: SuratItem[] }) {
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               {detail.status === 'diajukan' && (
-                <button className="btn-primary" style={{ flex: 1 }} disabled={loading}
+                <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  disabled={loading}
                   onClick={() => updateStatus(detail.id, 'diproses', nomorSurat || undefined)}>
-                  {loading ? '...' : '📋 Proses'}
+                  {loading ? '...' : <><ClipboardList size={14} /> Proses</>}
                 </button>
               )}
-              <button className="btn-primary" style={{ flex: 1 }} disabled={loading}
+              <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                disabled={loading}
                 onClick={() => updateStatus(detail.id, 'selesai', nomorSurat || undefined)}>
-                {loading ? '...' : '✅ Selesaikan'}
+                {loading ? '...' : <><CheckCircle size={14} /> Selesaikan</>}
               </button>
               <button className="btn-ghost" style={{ color: 'var(--red)' }} disabled={loading}
                 onClick={() => updateStatus(detail.id, 'ditolak')}>
@@ -105,7 +108,7 @@ export default function SuratAntreanClient({ items }: { items: SuratItem[] }) {
           const st = STATUS_STYLE[item.status] || STATUS_STYLE.diajukan
           return (
             <div key={item.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => setDetail(item)}>
-              <div className="pi-ico" style={{ background: st.bg }}>✉️</div>
+              <div className="pi-ico" style={{ background: st.bg }}><Mail size={18} color={st.color} /></div>
               <div className="pi-body">
                 <div className="pi-t">
                   {JENIS_LABEL[item.jenis] || item.jenis}

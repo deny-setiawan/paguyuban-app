@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { warga, profiles } from '@/lib/db/schema'
+import { Users } from 'lucide-react'
 import { eq } from 'drizzle-orm'
 import DataWargaClient from './DataWargaClient'
 import Link from 'next/link'
@@ -27,7 +28,7 @@ export default async function DataWargaPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">👥</span> Data Warga ({list.length})</div>
+        <div className="t"><Users size={16} /> Data Warga ({list.length})</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <DataWargaClient items={list.map(r => ({

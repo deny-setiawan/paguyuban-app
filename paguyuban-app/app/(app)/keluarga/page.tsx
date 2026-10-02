@@ -4,6 +4,7 @@ import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles, warga } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { ClipboardList, Info, Users, Crown, User } from 'lucide-react'
 
 export default async function KeluargaPage() {
   const cookieStore = await cookies()
@@ -27,21 +28,21 @@ export default async function KeluargaPage() {
       {!kepalaKk ? (
         <>
           <div className="status-banner pending">
-            <div className="sb-ico">📋</div>
+            <div className="sb-ico"><ClipboardList size={24} /></div>
             <div className="sb-txt">
               <div className="sb-l1">Data KK belum tersedia</div>
               <div className="sb-l2">Pengurus RT belum menginput data KK Anda. Hubungi pengurus untuk proses pendaftaran.</div>
             </div>
           </div>
           <div className="ib blue" style={{ marginTop: 16 }}>
-            <span>ℹ️</span>
+            <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>Jika sudah mendaftar, tunggu konfirmasi dari Ketua RT via WhatsApp.</div>
           </div>
         </>
       ) : (
         <>
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">👨‍👩‍👧</span> Data Kepala KK</div>
+            <div className="t"><Users size={16} /> Data Kepala KK</div>
           </div>
           <div className="peng-card" style={{ padding: '4px 0', marginBottom: 20 }}>
             <div className="kv"><span className="k">Nama KK</span><span className="v">{kepalaKk.namaLengkap}</span></div>
@@ -58,21 +59,23 @@ export default async function KeluargaPage() {
           </div>
 
           <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><span className="em">👥</span> Anggota Keluarga</div>
+            <div className="t"><Users size={16} /> Anggota Keluarga</div>
             <span style={{ fontSize: 12, color: 'var(--gray400)', fontWeight: 700 }}>{allAnggota.length} jiwa</span>
           </div>
 
           {allAnggota.length <= 1 && !kepalaKk.noKk ? (
             <div className="ib blue">
-              <span>ℹ️</span>
+              <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
               <div>Data anggota keluarga akan muncul setelah No. KK diisi oleh pengurus RT.</div>
             </div>
           ) : (
             <div className="peng-card">
-              {allAnggota.map((a, idx) => (
+              {allAnggota.map((a) => (
                 <div key={a.id} className="peng-item" style={{ cursor: 'default' }}>
-                  <div className="pi-ico" style={{ background: a.profileId === profile.id ? 'var(--g50)' : 'var(--gray100)', fontSize: 18 }}>
-                    {a.profileId === profile.id ? '👑' : a.jenisKelamin === 'P' ? '👩' : '👦'}
+                  <div className="pi-ico" style={{ background: a.profileId === profile.id ? 'var(--g50)' : 'var(--gray100)' }}>
+                    {a.profileId === profile.id
+                      ? <Crown size={18} color="var(--g600)" />
+                      : <User size={18} color="var(--gray500)" />}
                   </div>
                   <div className="pi-body">
                     <div className="pi-t">
@@ -94,8 +97,8 @@ export default async function KeluargaPage() {
             </div>
           )}
 
-          <div className="ib gold" style={{ marginTop: 16 }}>
-            <span>📋</span>
+          <div className="ib green" style={{ marginTop: 16 }}>
+            <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>Untuk memperbarui data KK atau anggota keluarga, gunakan <b>Pemutakhiran Data</b> di halaman utama atau hubungi pengurus RT.</div>
           </div>
         </>

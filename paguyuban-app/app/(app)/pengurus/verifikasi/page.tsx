@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { wargaInvites } from '@/lib/db/schema'
+import { Users } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import VerifikasiClient from './VerifikasiClient'
 import Link from 'next/link'
@@ -24,7 +25,7 @@ export default async function VerifikasiPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">👥</span> Verifikasi Warga Baru</div>
+        <div className="t"><Users size={16} /> Verifikasi Warga Baru</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <VerifikasiClient items={list.map(i => ({

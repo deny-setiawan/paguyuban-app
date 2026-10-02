@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { rupiah } from '@/lib/utils'
+import { Package, CheckCircle } from 'lucide-react'
 
 interface Item {
   id: string
@@ -60,22 +61,24 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
 
   return (
     <>
-      {/* Sheet mask */}
       {sewaItem && <div className="sheet-mask show" onClick={() => setSewaItem(null)} />}
 
-      {/* Sewa sheet */}
       <div className={`sheet${sewaItem ? ' show' : ''}`}>
         <div className="sheet-grip" />
         {done ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <CheckCircle size={52} color="var(--g500)" />
+            </div>
             <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--gray800)', marginBottom: 8 }}>Permintaan sewa terkirim!</div>
             <div style={{ fontSize: 13, color: 'var(--gray500)' }}>Pengurus RT akan mengonfirmasi via WhatsApp.</div>
             <button className="btn-p" style={{ marginTop: 20 }} onClick={() => setSewaItem(null)}>Tutup</button>
           </div>
         ) : sewaItem && (
           <>
-            <div className="sheet-h">📦 Pinjam: {sewaItem.nama}</div>
+            <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Package size={18} /> Pinjam: {sewaItem.nama}
+            </div>
             <div style={{ background: 'var(--gray50)', borderRadius: 12, padding: '10px 4px', marginBottom: 14 }}>
               <div className="kv"><span className="k">Harga sewa</span><span className="v">{sewaItem.hargaSewa ? rupiah(sewaItem.hargaSewa) + '/hari' : 'Gratis'}</span></div>
               <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Stok tersedia</span><span className="v">{sewaItem.stok ?? 0}</span></div>
@@ -90,7 +93,7 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
             <input className="rl-in" type="date" value={sewaTglKembali} onChange={e => setSewaTglKembali(e.target.value)} />
             {msg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginBottom: 8 }}>{msg}</div>}
             <button className="btn-p" onClick={submitSewa} disabled={loading}>
-              {loading ? 'Memproses…' : '📦 Ajukan Pinjam / Sewa'}
+              {loading ? 'Memproses…' : <><Package size={16} /> Ajukan Pinjam / Sewa</>}
             </button>
             <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8 }} onClick={() => setSewaItem(null)}>Batal</button>
           </>
@@ -99,7 +102,7 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
 
       {localItems.length === 0 ? (
         <div className="empty">
-          <div className="e-i">📦</div>
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Package size={38} color="var(--gray400)" /></div>
           <div className="e-t">Belum ada inventaris</div>
           <div className="e-d">Data barang inventaris RT belum tersedia.</div>
         </div>
@@ -108,7 +111,9 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
           {localItems.map(item => (
             <div key={item.id} className="iv-card">
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0 }}>📦</div>
+                <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Package size={26} color="var(--gold)" />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--gray800)' }}>{item.nama}</div>
                   {item.deskripsi && <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>{item.deskripsi}</div>}
@@ -121,7 +126,7 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
               <div style={{ marginTop: 12 }}>
                 {(item.stok || 0) > 0 ? (
                   <button className="btn-p" style={{ height: 40 }} onClick={() => openSewa(item)}>
-                    📦 Pinjam / Sewa
+                    <Package size={14} /> Pinjam / Sewa
                   </button>
                 ) : (
                   <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gray100)', borderRadius: 12, fontSize: 13, fontWeight: 700, color: 'var(--gray400)' }}>

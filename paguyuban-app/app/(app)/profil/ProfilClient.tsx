@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Clock, User, ClipboardList, Save, LogOut, Pencil } from 'lucide-react'
 
 interface ProfileData {
   id: string
@@ -96,7 +97,7 @@ export default function ProfilClient({ profile, warga, rtName }: Props) {
 
       {!profile.isActive && (
         <div className="status-banner pending" style={{ marginBottom: 16 }}>
-          <div className="sb-ico">⏳</div>
+          <div className="sb-ico"><Clock size={24} /></div>
           <div className="sb-txt">
             <div className="sb-l1">Akun belum aktif</div>
             <div className="sb-l2">Pengurus RT sedang meninjau pendaftaran Anda.</div>
@@ -106,11 +107,11 @@ export default function ProfilClient({ profile, warga, rtName }: Props) {
 
       {/* Data profil */}
       <div className="sec-h" style={{ marginBottom: 12 }}>
-        <div className="t"><span className="em">👤</span> Data Diri</div>
+        <div className="t"><User size={16} /> Data Diri</div>
         {!editing && (
           <button onClick={() => setEditing(true)}
-            style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: 'var(--g600)', cursor: 'pointer', fontFamily: 'var(--f)' }}>
-            ✏️ Edit
+            style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: 'var(--g600)', cursor: 'pointer', fontFamily: 'var(--f)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Pencil size={13} /> Edit
           </button>
         )}
       </div>
@@ -131,7 +132,7 @@ export default function ProfilClient({ profile, warga, rtName }: Props) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button className="rl-b" style={{ flex: 1, height: 44 }} onClick={() => { setEditing(false); setMsg('') }}>Batal</button>
             <button className="btn-p" style={{ flex: 2, height: 44 }} onClick={saveProfile} disabled={loading}>
-              {loading ? 'Menyimpan…' : '💾 Simpan'}
+              {loading ? 'Menyimpan…' : <><Save size={16} /> Simpan</>}
             </button>
           </div>
         </div>
@@ -149,7 +150,7 @@ export default function ProfilClient({ profile, warga, rtName }: Props) {
       {warga && (
         <>
           <div className="sec-h" style={{ margin: '20px 0 12px' }}>
-            <div className="t"><span className="em">📋</span> Data KK</div>
+            <div className="t"><ClipboardList size={16} /> Data KK</div>
           </div>
           <div className="peng-card" style={{ padding: '4px 0' }}>
             <div className="kv"><span className="k">Nama KK</span><span className="v">{warga.namaLengkap}</span></div>
@@ -174,9 +175,10 @@ export default function ProfilClient({ profile, warga, rtName }: Props) {
             width: '100%', height: 48, border: '2px solid var(--red)', borderRadius: 14,
             background: 'white', color: 'var(--red)', fontFamily: 'var(--f)',
             fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-          {logoutLoading ? 'Keluar…' : '🚪 Keluar dari akun'}
+          {logoutLoading ? 'Keluar…' : <><LogOut size={16} /> Keluar dari akun</>}
         </button>
       </div>
     </>

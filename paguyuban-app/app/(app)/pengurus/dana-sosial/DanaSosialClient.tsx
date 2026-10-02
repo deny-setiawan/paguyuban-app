@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { rupiah } from '@/lib/utils'
+import { Baby, Activity, Handshake } from 'lucide-react'
 
 interface DanaSosialItem {
   id: string
@@ -90,9 +91,9 @@ export default function DanaSosialClient({ items, alokasiSosial }: { items: Dana
                       flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
                       background: jenis === j ? 'var(--g600)' : 'var(--gray100)',
                       color: jenis === j ? 'white' : 'var(--gray700)',
-                      textTransform: 'capitalize',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}>
-                    {j === 'kelahiran' ? '👶 Kelahiran' : '🏥 Sakit'}
+                    {j === 'kelahiran' ? <><Baby size={14} /> Kelahiran</> : <><Activity size={14} /> Sakit</>}
                   </button>
                 ))}
               </div>
@@ -105,24 +106,27 @@ export default function DanaSosialClient({ items, alokasiSosial }: { items: Dana
       )}
 
       <input className="inp" value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="🔍 Cari nama atau no. rumah..." style={{ marginBottom: 16 }} />
+        placeholder="Cari nama atau no. rumah..." style={{ marginBottom: 16 }} />
 
       {filtered.length === 0 ? (
-        <div className="empty"><div className="e-i">🤝</div><div className="e-t">Belum ada data warga</div></div>
+        <div className="empty">
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Handshake size={38} color="var(--gray400)" /></div>
+          <div className="e-t">Belum ada data warga</div>
+        </div>
       ) : (
         <div className="peng-card">
           {filtered.map(w => (
             <div key={w.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => setDetail(w)}>
-              <div className="pi-ico" style={{ background: 'var(--teal-l)' }}>🤝</div>
+              <div className="pi-ico" style={{ background: 'var(--teal-l)' }}><Handshake size={18} color="var(--teal)" /></div>
               <div className="pi-body">
                 <div className="pi-t">{w.nama}</div>
                 <div className="pi-d">No. {w.noRumah || '-'}</div>
                 <div className="pi-d" style={{ display: 'flex', gap: 12, marginTop: 2 }}>
-                  <span style={{ color: w.dansosKelahiranTerpakai >= BATAS_KELAHIRAN ? 'var(--red)' : 'var(--gray600)' }}>
-                    👶 {w.dansosKelahiranTerpakai}/{BATAS_KELAHIRAN}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: w.dansosKelahiranTerpakai >= BATAS_KELAHIRAN ? 'var(--red)' : 'var(--gray600)' }}>
+                    <Baby size={12} /> {w.dansosKelahiranTerpakai}/{BATAS_KELAHIRAN}
                   </span>
-                  <span style={{ color: w.dansosSakitTerpakai >= BATAS_SAKIT ? 'var(--red)' : 'var(--gray600)' }}>
-                    🏥 {w.dansosSakitTerpakai}/{BATAS_SAKIT}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: w.dansosSakitTerpakai >= BATAS_SAKIT ? 'var(--red)' : 'var(--gray600)' }}>
+                    <Activity size={12} /> {w.dansosSakitTerpakai}/{BATAS_SAKIT}
                   </span>
                 </div>
               </div>

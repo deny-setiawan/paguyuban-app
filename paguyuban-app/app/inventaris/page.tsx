@@ -8,6 +8,7 @@ import TopBar from '@/components/layout/TopBar'
 import BottomNav from '@/components/layout/BottomNav'
 import InventarisClient from '../(app)/inventaris/InventarisClient'
 import Link from 'next/link'
+import { Package } from 'lucide-react'
 
 export default async function InventarisPage() {
   const cookieStore = await cookies()
@@ -51,7 +52,7 @@ export default async function InventarisPage() {
         <div className="tb-top">
           <Link href="/" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 12, background: 'rgba(255,255,255,.18)', color: 'white', textDecoration: 'none', fontSize: 16 }}>←</Link>
           <div className="tb-hi">
-            <div className="g">📦 Inventaris RT</div>
+            <div className="g" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Package size={15} /> Inventaris RT</div>
             <div className="n">{rt?.namaRt || 'Paguyuban PKR-Pepe'}</div>
           </div>
           {profileData && (

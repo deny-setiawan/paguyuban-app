@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
+import { CreditCard, Mail, FileText, Megaphone, Car, Package, Settings, Bell } from 'lucide-react'
 
 interface NotifItem {
   id: string
@@ -15,14 +16,29 @@ interface NotifItem {
 
 interface Props { items: NotifItem[] }
 
-const KAT_ICO: Record<string, string> = {
-  iuran: '💳', surat: '✉️', laporan: '📝', pengumuman: '📢',
-  kendaraan: '🚗', inventaris: '📦', sistem: '⚙️',
+function KatIcon({ kat, size = 18 }: { kat: string; size?: number }) {
+  const color = KAT_COLOR[kat] || 'var(--gray500)'
+  switch (kat) {
+    case 'iuran': return <CreditCard size={size} color={color} />
+    case 'surat': return <Mail size={size} color={color} />
+    case 'laporan': return <FileText size={size} color={color} />
+    case 'pengumuman': return <Megaphone size={size} color={color} />
+    case 'kendaraan': return <Car size={size} color={color} />
+    case 'inventaris': return <Package size={size} color={color} />
+    case 'sistem': return <Settings size={size} color={color} />
+    default: return <Bell size={size} color={color} />
+  }
 }
+
 const KAT_BG: Record<string, string> = {
   iuran: 'var(--g50)', surat: 'var(--teal-l)', laporan: 'var(--purple-l)',
   pengumuman: 'var(--orange-l)', kendaraan: 'var(--gray100)',
   inventaris: 'var(--gold-l)', sistem: 'var(--blue-l)',
+}
+const KAT_COLOR: Record<string, string> = {
+  iuran: 'var(--g600)', surat: 'var(--teal)', laporan: 'var(--purple)',
+  pengumuman: 'var(--orange)', kendaraan: 'var(--gray500)',
+  inventaris: 'var(--gold)', sistem: 'var(--blue)',
 }
 
 export default function NotifikasiClient({ items }: Props) {
@@ -60,14 +76,13 @@ export default function NotifikasiClient({ items }: Props) {
 
       {local.length === 0 ? (
         <div className="empty">
-          <div className="e-i">🔔</div>
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Bell size={38} color="var(--gray400)" /></div>
           <div className="e-t">Belum ada notifikasi</div>
           <div className="e-d">Pemberitahuan dari pengurus RT dan sistem akan muncul di sini.</div>
         </div>
       ) : (
         <div className="peng-card">
           {local.map(n => {
-            const ico = KAT_ICO[n.kategori || ''] || '🔔'
             const bg = KAT_BG[n.kategori || ''] || 'var(--gray100)'
             const isPenting = n.prioritas === 'penting' || n.prioritas === 'tinggi'
             return (
@@ -77,7 +92,7 @@ export default function NotifikasiClient({ items }: Props) {
                 onClick={() => !n.isRead && markRead(n.id)}
               >
                 <div className="pi-ico" style={{ background: bg, position: 'relative' }}>
-                  {ico}
+                  <KatIcon kat={n.kategori || ''} />
                   {!n.isRead && (
                     <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--red)', border: '2px solid white' }} />
                   )}

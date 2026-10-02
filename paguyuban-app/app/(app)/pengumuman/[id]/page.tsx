@@ -6,6 +6,7 @@ import { profiles, pengumuman } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { timeAgo } from '@/lib/utils'
+import { AlertTriangle, Calendar, Megaphone, Clock } from 'lucide-react'
 
 export default async function PengumumanDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,8 +25,11 @@ export default async function PengumumanDetailPage({ params }: { params: Promise
   if (!p || p.rtGroupId !== profile.rtGroupId) notFound()
 
   const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
-  const ico = pri ? '⚠️' : p.kategori === 'acara' ? '📅' : '📢'
   const bg = pri ? 'var(--red-l)' : p.kategori === 'acara' ? 'var(--blue-l)' : 'var(--orange-l)'
+  const IcoEl = pri
+    ? <AlertTriangle size={18} color="var(--red)" />
+    : p.kategori === 'acara' ? <Calendar size={18} color="var(--blue)" />
+    : <Megaphone size={18} color="var(--orange)" />
 
   return (
     <>
@@ -36,7 +40,7 @@ export default async function PengumumanDetailPage({ params }: { params: Promise
       <div className="peng-card">
         <div style={{ padding: '4px 0' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
-            <div className="pi-ico" style={{ background: bg, flexShrink: 0 }}>{ico}</div>
+            <div className="pi-ico" style={{ background: bg, flexShrink: 0 }}>{IcoEl}</div>
             <div style={{ flex: 1 }}>
               <h1 style={{ fontSize: 17, fontWeight: 800, color: 'var(--gray900)', lineHeight: 1.4, margin: '0 0 6px' }}>
                 {p.judul}
@@ -48,8 +52,8 @@ export default async function PengumumanDetailPage({ params }: { params: Promise
             </div>
           </div>
 
-          <div style={{ fontSize: 11.5, color: 'var(--gray400)', marginBottom: 16 }}>
-            🕐 {timeAgo(p.createdAt.toISOString())} · {new Date(p.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+          <div style={{ fontSize: 11.5, color: 'var(--gray400)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={11} /> {timeAgo(p.createdAt.toISOString())} · {new Date(p.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
 
           {p.isi ? (

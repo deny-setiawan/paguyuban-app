@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { warga, iuranSettings } from '@/lib/db/schema'
+import { Handshake } from 'lucide-react'
 import { eq } from 'drizzle-orm'
 import DanaSosialClient from './DanaSosialClient'
 import Link from 'next/link'
@@ -29,7 +30,7 @@ export default async function DanaSosialPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">🤝</span> Dana Sosial</div>
+        <div className="t"><Handshake size={16} /> Dana Sosial</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <DanaSosialClient

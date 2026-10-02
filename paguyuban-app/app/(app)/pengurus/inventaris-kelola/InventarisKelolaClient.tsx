@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { rupiah } from '@/lib/utils'
+import { Package, Key, Pencil, Trash2 } from 'lucide-react'
 
 interface InvItem {
   id: string
@@ -100,8 +101,11 @@ export default function InventarisKelolaClient({ items, activeSewa }: { items: I
           <button key={t} onClick={() => setTab(t)}
             style={{ flex: 1, padding: '8px 0', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13,
               background: tab === t ? 'white' : 'transparent', color: tab === t ? 'var(--gray900)' : 'var(--gray500)',
-              boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.1)' : 'none' }}>
-            {t === 'inventaris' ? `📦 Barang (${list.length})` : `🔑 Sedang Disewa (${activeSewa.length})`}
+              boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            {t === 'inventaris'
+              ? <><Package size={14} /> Barang ({list.length})</>
+              : <><Key size={14} /> Sedang Disewa ({activeSewa.length})</>}
           </button>
         ))}
       </div>
@@ -111,19 +115,26 @@ export default function InventarisKelolaClient({ items, activeSewa }: { items: I
           <button className="btn-primary" style={{ width: '100%', marginBottom: 12 }} onClick={openNew}>+ Tambah Barang</button>
 
           {list.length === 0 ? (
-            <div className="empty"><div className="e-i">📦</div><div className="e-t">Belum ada barang</div></div>
+            <div className="empty">
+              <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Package size={38} color="var(--gray400)" /></div>
+              <div className="e-t">Belum ada barang</div>
+            </div>
           ) : (
             <div className="peng-card">
               {list.map(item => (
                 <div key={item.id} className="peng-item" style={{ cursor: 'default' }}>
-                  <div className="pi-ico" style={{ background: 'var(--gold-l)' }}>📦</div>
+                  <div className="pi-ico" style={{ background: 'var(--gold-l)' }}><Package size={18} color="var(--gold)" /></div>
                   <div className="pi-body" style={{ flex: 1 }}>
                     <div className="pi-t">{item.nama}</div>
                     <div className="pi-d">Stok: {item.stok}/{item.stokTotal} · Sewa: {rupiah(item.hargaSewa)}/hari</div>
                     {item.deskripsi && <div className="pi-d">{item.deskripsi}</div>}
                     <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                      <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => openEdit(item)}>✏️ Edit</button>
-                      <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', color: 'var(--red)' }} onClick={() => deleteItem(item.id)}>🗑</button>
+                      <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => openEdit(item)}>
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button className="btn-ghost" style={{ fontSize: 12, padding: '4px 10px', color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => deleteItem(item.id)}>
+                        <Trash2 size={12} /> Hapus
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -135,12 +146,15 @@ export default function InventarisKelolaClient({ items, activeSewa }: { items: I
 
       {tab === 'sewa' && (
         activeSewa.length === 0 ? (
-          <div className="empty"><div className="e-i">🔑</div><div className="e-t">Tidak ada barang sedang disewa</div></div>
+          <div className="empty">
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Key size={38} color="var(--gray400)" /></div>
+            <div className="e-t">Tidak ada barang sedang disewa</div>
+          </div>
         ) : (
           <div className="peng-card">
             {activeSewa.map(s => (
               <div key={s.id} className="peng-item" style={{ cursor: 'default' }}>
-                <div className="pi-ico" style={{ background: 'var(--blue-l)' }}>🔑</div>
+                <div className="pi-ico" style={{ background: 'var(--blue-l)' }}><Key size={18} color="var(--blue)" /></div>
                 <div className="pi-body">
                   <div className="pi-t">{s.inventarisNama || '-'}</div>
                   <div className="pi-d">{s.penyewaNama} {s.penyewaHp ? `· ${s.penyewaHp}` : ''}</div>

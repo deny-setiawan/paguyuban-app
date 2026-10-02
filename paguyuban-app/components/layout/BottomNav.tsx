@@ -1,13 +1,22 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import { Home, CreditCard, Megaphone, Bell, User } from 'lucide-react'
 
-const tabs = [
-  { path: '/', icon: '🏠', label: 'Beranda' },
-  { path: '/iuran', icon: '💳', label: 'Iuran' },
-  { path: null, icon: '📢', label: 'Lapor', fab: true },
-  { path: '/pengumuman', icon: '📣', label: 'Info' },
-  { path: '/profil', icon: '👤', label: 'Profil' },
+interface Tab {
+  path: string | null
+  icon: React.ReactNode
+  fabIcon?: React.ReactNode
+  label: string
+  fab?: boolean
+}
+
+const tabs: Tab[] = [
+  { path: '/', icon: <Home size={21} />, label: 'Beranda' },
+  { path: '/iuran', icon: <CreditCard size={21} />, label: 'Iuran' },
+  { path: null, icon: null, fabIcon: <Megaphone size={23} />, label: 'Lapor', fab: true },
+  { path: '/pengumuman', icon: <Bell size={21} />, label: 'Info' },
+  { path: '/profil', icon: <User size={21} />, label: 'Profil' },
 ]
 
 interface BottomNavProps {
@@ -24,7 +33,7 @@ export default function BottomNav({ onLapor }: BottomNavProps) {
         if (tab.fab) {
           return (
             <div key="fab" className="bn bn-fab" onClick={onLapor}>
-              <div className="fab">{tab.icon}</div>
+              <div className="fab">{tab.fabIcon}</div>
               <div className="fab-l">{tab.label}</div>
             </div>
           )

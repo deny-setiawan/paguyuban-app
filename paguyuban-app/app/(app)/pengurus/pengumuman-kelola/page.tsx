@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { pengumuman } from '@/lib/db/schema'
+import { Megaphone } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import PengumumanKelolaClient from './PengumumanKelolaClient'
 import Link from 'next/link'
@@ -22,7 +23,7 @@ export default async function PengumumanKelolaPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">📢</span> Kelola Pengumuman</div>
+        <div className="t"><Megaphone size={16} /> Kelola Pengumuman</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <PengumumanKelolaClient items={list.map(p => ({

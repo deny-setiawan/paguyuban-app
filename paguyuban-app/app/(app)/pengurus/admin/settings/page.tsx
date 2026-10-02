@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { rtGroups } from '@/lib/db/schema'
+import { Settings } from 'lucide-react'
 import { eq } from 'drizzle-orm'
 import AdminSettingsClient from './AdminSettingsClient'
 import Link from 'next/link'
@@ -20,7 +21,7 @@ export default async function AdminSettingsPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">⚙️</span> Pengaturan RT</div>
+        <div className="t"><Settings size={16} /> Pengaturan RT</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <AdminSettingsClient rt={{

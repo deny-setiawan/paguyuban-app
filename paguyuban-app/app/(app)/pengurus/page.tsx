@@ -6,12 +6,17 @@ import { profiles, rtGroups, wargaInvites, iuranPayments, surat, laporanWarga, t
 import { eq, and, count, desc } from 'drizzle-orm'
 import { rupiah } from '@/lib/utils'
 import Link from 'next/link'
+import {
+  Crown, ClipboardList, Wallet, Shield, Users, Mail, CreditCard,
+  FileText, Package, Settings, User, Megaphone, BarChart2,
+  Clock, CheckCircle, Handshake,
+} from 'lucide-react'
 
-const ROLE_LABELS: Record<string, { label: string; ico: string }> = {
-  ketua: { label: 'Ketua RT', ico: '👑' },
-  sekretaris: { label: 'Sekretaris', ico: '📋' },
-  bendahara: { label: 'Bendahara', ico: '💰' },
-  admin: { label: 'Admin', ico: '⚙️' },
+const ROLE_INFO: Record<string, { label: string; Icon: React.ElementType }> = {
+  ketua:      { label: 'Ketua RT',   Icon: Crown },
+  sekretaris: { label: 'Sekretaris', Icon: ClipboardList },
+  bendahara:  { label: 'Bendahara',  Icon: Wallet },
+  admin:      { label: 'Admin',      Icon: Shield },
 }
 
 export default async function PengurusPage() {
@@ -36,8 +41,8 @@ export default async function PengurusPage() {
   const rtId = profile.rtGroupId
   if (!rtId) {
     return (
-      <div className="ib gold">
-        <span>⚠️</span>
+      <div className="ib blue">
+        <Shield size={14} style={{ flexShrink: 0, marginTop: 1 }} />
         <div>Akun Anda belum dikaitkan ke RT manapun. Hubungi administrator sistem.</div>
       </div>
     )
@@ -65,21 +70,25 @@ export default async function PengurusPage() {
   }
 
   const role = payload.role
-  const roleInfo = ROLE_LABELS[role] || { label: role, ico: '🛡️' }
+  const roleInfo = ROLE_INFO[role] || { label: role, Icon: Shield }
+  const { label: roleLabel, Icon: RoleIcon } = roleInfo
   const totalPending = stats.pendingInvite + stats.pendingPayment + stats.pendingSurat + stats.pendingLaporan
 
   return (
     <>
       <div className="status-banner aktif" style={{ marginBottom: 4 }}>
-        <div className="sb-ico">{roleInfo.ico}</div>
+        <div className="sb-ico"><RoleIcon size={24} /></div>
         <div className="sb-txt">
-          <div className="sb-l1">Halo, {roleInfo.label}!</div>
-          <div className="sb-l2">{rt?.namaRt || 'Paguyuban PKR-Pepe'} · {totalPending > 0 ? `${totalPending} item perlu perhatian` : 'Semua tertangani ✅'}</div>
+          <div className="sb-l1">Halo, {roleLabel}!</div>
+          <div className="sb-l2">
+            {rt?.namaRt || 'Paguyuban PKR-Pepe'} · {totalPending > 0 ? `${totalPending} item perlu perhatian` : 'Semua tertangani'}
+            {totalPending === 0 && <CheckCircle size={12} style={{ display: 'inline', marginLeft: 4 }} />}
+          </div>
         </div>
       </div>
 
       <div className="sec-h" style={{ marginBottom: 12, marginTop: 8 }}>
-        <div className="t"><span className="em">📊</span> Statistik RT</div>
+        <div className="t"><BarChart2 size={16} /> Statistik RT</div>
       </div>
       <div className="rl-st" style={{ marginBottom: 4 }}>
         <div>
@@ -103,58 +112,66 @@ export default async function PengurusPage() {
       {totalPending > 0 && (
         <>
           <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
-            <div className="t"><span className="em">⏳</span> Perlu Ditindaklanjuti</div>
+            <div className="t"><Clock size={16} /> Perlu Ditindaklanjuti</div>
           </div>
           <div className="peng-card">
             {stats.pendingInvite > 0 && (
-              <div className="peng-item" style={{ cursor: 'default' }}>
-                <div className="pi-ico" style={{ background: 'var(--gold-l)' }}>👥</div>
-                <div className="pi-body">
-                  <div className="pi-t">Pendaftaran Warga Baru <span className="pill menunggu">{stats.pendingInvite}</span></div>
-                  <div className="pi-d">Warga baru menunggu verifikasi pengurus</div>
+              <Link href="/pengurus/verifikasi">
+                <div className="peng-item">
+                  <div className="pi-ico" style={{ background: 'var(--gold-l)' }}><Users size={18} color="var(--gold)" /></div>
+                  <div className="pi-body">
+                    <div className="pi-t">Pendaftaran Warga Baru <span className="pill menunggu">{stats.pendingInvite}</span></div>
+                    <div className="pi-d">Warga baru menunggu verifikasi pengurus</div>
+                  </div>
                 </div>
-              </div>
+              </Link>
             )}
             {stats.pendingPayment > 0 && (
-              <div className="peng-item" style={{ cursor: 'default' }}>
-                <div className="pi-ico" style={{ background: 'var(--g50)' }}>💳</div>
-                <div className="pi-body">
-                  <div className="pi-t">Verifikasi Pembayaran Iuran <span className="pill menunggu">{stats.pendingPayment}</span></div>
-                  <div className="pi-d">Pembayaran transfer menunggu konfirmasi</div>
+              <Link href="/pengurus/verifikasi-bayar">
+                <div className="peng-item">
+                  <div className="pi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={18} color="var(--g600)" /></div>
+                  <div className="pi-body">
+                    <div className="pi-t">Verifikasi Pembayaran Iuran <span className="pill menunggu">{stats.pendingPayment}</span></div>
+                    <div className="pi-d">Pembayaran transfer menunggu konfirmasi</div>
+                  </div>
                 </div>
-              </div>
+              </Link>
             )}
             {stats.pendingSurat > 0 && (
-              <div className="peng-item" style={{ cursor: 'default' }}>
-                <div className="pi-ico" style={{ background: 'var(--blue-l)' }}>✉️</div>
-                <div className="pi-body">
-                  <div className="pi-t">Permohonan Surat <span className="pill menunggu">{stats.pendingSurat}</span></div>
-                  <div className="pi-d">Surat keterangan RT menunggu proses</div>
+              <Link href="/pengurus/surat-antrean">
+                <div className="peng-item">
+                  <div className="pi-ico" style={{ background: 'var(--blue-l)' }}><Mail size={18} color="var(--blue)" /></div>
+                  <div className="pi-body">
+                    <div className="pi-t">Permohonan Surat <span className="pill menunggu">{stats.pendingSurat}</span></div>
+                    <div className="pi-d">Surat keterangan RT menunggu proses</div>
+                  </div>
                 </div>
-              </div>
+              </Link>
             )}
             {stats.pendingLaporan > 0 && (
-              <div className="peng-item" style={{ cursor: 'default' }}>
-                <div className="pi-ico" style={{ background: 'var(--purple-l)' }}>📝</div>
-                <div className="pi-body">
-                  <div className="pi-t">Laporan Warga <span className="pill menunggu">{stats.pendingLaporan}</span></div>
-                  <div className="pi-d">Laporan warga menunggu tanggapan</div>
+              <Link href="/pengurus/laporan-masuk">
+                <div className="peng-item">
+                  <div className="pi-ico" style={{ background: 'var(--purple-l)' }}><FileText size={18} color="var(--purple)" /></div>
+                  <div className="pi-body">
+                    <div className="pi-t">Laporan Warga <span className="pill menunggu">{stats.pendingLaporan}</span></div>
+                    <div className="pi-d">Laporan warga menunggu tanggapan</div>
+                  </div>
                 </div>
-              </div>
+              </Link>
             )}
           </div>
         </>
       )}
 
       <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
-        <div className="t"><span className="em">⚡</span> Menu Pengurus</div>
+        <div className="t"><Shield size={16} /> Menu Pengurus</div>
       </div>
       <div className="menu-grid">
         {role !== 'bendahara' && (
           <Link href="/pengurus/verifikasi">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--gold-l)', position: 'relative' }}>
-                👥
+                <Users size={22} color="var(--gold)" />
                 {stats.pendingInvite > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingInvite}</span>}
               </div>
               <div className="mi-lbl">Warga Baru</div>
@@ -165,7 +182,7 @@ export default async function PengurusPage() {
           <Link href="/pengurus/surat-antrean">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--blue-l)', position: 'relative' }}>
-                ✉️
+                <Mail size={22} color="var(--blue)" />
                 {stats.pendingSurat > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingSurat}</span>}
               </div>
               <div className="mi-lbl">Proses Surat</div>
@@ -175,7 +192,7 @@ export default async function PengurusPage() {
         {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
           <Link href="/pengurus/kas">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--g50)' }}>💰</div>
+              <div className="mi-ico" style={{ background: 'var(--g50)' }}><Wallet size={22} color="var(--g600)" /></div>
               <div className="mi-lbl">Kas RT</div>
             </div>
           </Link>
@@ -184,10 +201,18 @@ export default async function PengurusPage() {
           <Link href="/pengurus/verifikasi-bayar">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--teal-l)', position: 'relative' }}>
-                💳
+                <CreditCard size={22} color="var(--teal)" />
                 {stats.pendingPayment > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingPayment}</span>}
               </div>
               <div className="mi-lbl">Verif. Bayar</div>
+            </div>
+          </Link>
+        )}
+        {(role === 'bendahara' || role === 'admin' || role === 'ketua') && (
+          <Link href="/pengurus/tagihan">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={22} color="var(--g600)" /></div>
+              <div className="mi-lbl">Tagihan</div>
             </div>
           </Link>
         )}
@@ -195,7 +220,7 @@ export default async function PengurusPage() {
           <Link href="/pengurus/laporan-masuk">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--purple-l)', position: 'relative' }}>
-                📝
+                <FileText size={22} color="var(--purple)" />
                 {stats.pendingLaporan > 0 && <span style={{ position: 'absolute', top: -4, right: -4, background: 'var(--red)', color: 'white', fontSize: 10, fontWeight: 800, borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{stats.pendingLaporan}</span>}
               </div>
               <div className="mi-lbl">Laporan</div>
@@ -205,7 +230,7 @@ export default async function PengurusPage() {
         {role !== 'bendahara' && (
           <Link href="/pengurus/data-warga">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--gray100)' }}>📋</div>
+              <div className="mi-ico" style={{ background: 'var(--gray100)' }}><ClipboardList size={22} color="var(--gray500)" /></div>
               <div className="mi-lbl">Data Warga</div>
             </div>
           </Link>
@@ -213,7 +238,7 @@ export default async function PengurusPage() {
         {role !== 'bendahara' && (
           <Link href="/pengurus/pengumuman-kelola">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--orange-l)' }}>📢</div>
+              <div className="mi-ico" style={{ background: 'var(--orange-l)' }}><Megaphone size={22} color="var(--orange)" /></div>
               <div className="mi-lbl">Pengumuman</div>
             </div>
           </Link>
@@ -221,7 +246,7 @@ export default async function PengurusPage() {
         {(role === 'ketua' || role === 'admin') && (
           <Link href="/pengurus/inventaris-kelola">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--gold-l)' }}>📦</div>
+              <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
               <div className="mi-lbl">Inventaris</div>
             </div>
           </Link>
@@ -229,7 +254,7 @@ export default async function PengurusPage() {
         {(role === 'ketua' || role === 'bendahara' || role === 'admin') && (
           <Link href="/pengurus/dana-sosial">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--teal-l)' }}>🤝</div>
+              <div className="mi-ico" style={{ background: 'var(--teal-l)' }}><Handshake size={22} color="var(--teal)" /></div>
               <div className="mi-lbl">Dana Sosial</div>
             </div>
           </Link>
@@ -237,7 +262,7 @@ export default async function PengurusPage() {
         {role === 'admin' && (
           <Link href="/pengurus/admin/settings">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--orange-l)' }}>⚙️</div>
+              <div className="mi-ico" style={{ background: 'var(--orange-l)' }}><Settings size={22} color="var(--orange)" /></div>
               <div className="mi-lbl">Pengaturan RT</div>
             </div>
           </Link>
@@ -245,7 +270,7 @@ export default async function PengurusPage() {
         {role === 'admin' && (
           <Link href="/pengurus/admin/akun">
             <div className="menu-item">
-              <div className="mi-ico" style={{ background: 'var(--purple-l)' }}>👤</div>
+              <div className="mi-ico" style={{ background: 'var(--purple-l)' }}><User size={22} color="var(--purple)" /></div>
               <div className="mi-lbl">Kelola Akun</div>
             </div>
           </Link>

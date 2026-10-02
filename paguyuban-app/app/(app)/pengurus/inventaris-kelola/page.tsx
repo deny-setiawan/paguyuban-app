@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { inventaris, inventarisSewa } from '@/lib/db/schema'
+import { Package } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import InventarisKelolaClient from './InventarisKelolaClient'
 import Link from 'next/link'
@@ -27,7 +28,7 @@ export default async function InventarisKelolaPage() {
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><span className="em">📦</span> Kelola Inventaris</div>
+        <div className="t"><Package size={16} /> Kelola Inventaris</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <InventarisKelolaClient

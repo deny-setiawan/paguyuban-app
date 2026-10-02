@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Users, User, Save } from 'lucide-react'
 
 interface WargaItem {
   id: string
@@ -89,18 +90,22 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
                 <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.replace('_', ' ')}</option>
               ))}
             </select>
-            <button className="btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading} onClick={saveEdit}>
-              {loading ? 'Menyimpan...' : '💾 Simpan'}
+            <button className="btn-primary" style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              disabled={loading} onClick={saveEdit}>
+              {loading ? 'Menyimpan...' : <><Save size={14} /> Simpan</>}
             </button>
           </div>
         </div>
       )}
 
       <input className="inp" value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="🔍 Cari nama, no. rumah, atau HP..." style={{ marginBottom: 16 }} />
+        placeholder="Cari nama, no. rumah, atau HP..." style={{ marginBottom: 16 }} />
 
       {filtered.length === 0 ? (
-        <div className="empty"><div className="e-i">👥</div><div className="e-t">Tidak ada warga ditemukan</div></div>
+        <div className="empty">
+          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Users size={38} color="var(--gray400)" /></div>
+          <div className="e-t">Tidak ada warga ditemukan</div>
+        </div>
       ) : (
         Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([noRumah, wargaList]) => (
           <div key={noRumah} style={{ marginBottom: 12 }}>
@@ -111,7 +116,7 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
               {wargaList.map(w => (
                 <div key={w.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => openDetail(w)}>
                   <div className="pi-ico" style={{ background: w.kkStatus === 'kepala_kk' ? 'var(--g50)' : 'var(--gray100)' }}>
-                    {w.jenisKelamin === 'P' ? '👩' : '👤'}
+                    <User size={18} color={w.kkStatus === 'kepala_kk' ? 'var(--g600)' : 'var(--gray500)'} />
                   </div>
                   <div className="pi-body">
                     <div className="pi-t">

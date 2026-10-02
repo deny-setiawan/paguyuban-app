@@ -7,7 +7,7 @@ import { normalizePhone } from '@/lib/utils'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { jenis = 'warga_baru', nama, noRumah, phone, dataKk, anggota } = body
+    const { jenis = 'warga_baru', nama, noRumah, phone, dataKk, anggota, fotoFiles } = body
 
     if (!nama || typeof nama !== 'string' || !nama.trim()) {
       return NextResponse.json({ error: 'Nama wajib diisi' }, { status: 400 })
@@ -21,24 +21,29 @@ export async function POST(req: NextRequest) {
 
     let profileId: string | null = null
 
-    if (jenis === 'warga_baru' && phone) {
+    if (phone) {
       const normalPhone = normalizePhone(phone)
       // Check if phone already exists
       const existing = await db.select().from(profiles).where(eq(profiles.phone, normalPhone)).limit(1)
-      if (existing.length > 0) {
+      if (jenis === 'warga_baru' && existing.length > 0) {
         return NextResponse.json({ error: 'Nomor HP sudah terdaftar. Silakan login.' }, { status: 409 })
       }
-      // Create profile (inactive, pending verification)
-      const [newProfile] = await db.insert(profiles).values({
-        phone: normalPhone,
-        fullName: nama.trim(),
-        role: 'warga',
-        rtGroupId: rt.id,
-        isActive: false,
-        isVerified: false,
-        noRumah: noRumah || null,
-      }).returning()
-      profileId = newProfile.id
+      if (jenis === 'warga_baru' && existing.length === 0) {
+        // Create profile (inactive, pending verification)
+        const [newProfile] = await db.insert(profiles).values({
+          phone: normalPhone,
+          fullName: nama.trim(),
+          role: 'warga',
+          rtGroupId: rt.id,
+          isActive: false,
+          isVerified: false,
+          noRumah: noRumah || null,
+        }).returning()
+        profileId = newProfile.id
+      }
+      if (jenis === 'pemutakhiran' && existing.length > 0) {
+        profileId = existing[0].id
+      }
     }
 
     // Create warga invite
@@ -51,6 +56,7 @@ export async function POST(req: NextRequest) {
       profileId,
       dataKk: dataKk || null,
       anggota: anggota || null,
+      fotoFiles: fotoFiles && fotoFiles.length > 0 ? fotoFiles : null,
     }).returning()
 
     return NextResponse.json({ ok: true, inviteId: invite.id, profileId })

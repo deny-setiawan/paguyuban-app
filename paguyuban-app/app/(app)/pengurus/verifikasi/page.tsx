@@ -36,6 +36,7 @@ export default async function VerifikasiPage() {
         jenis: i.jenis || 'warga_baru',
         dataKk: i.dataKk as Record<string, string> | null,
         anggota: i.anggota as Array<Record<string, string>> | null,
+        fotoFiles: i.fotoFiles as string[] | null,
         createdAt: i.createdAt.toISOString(),
       }))} canApprove={canApprove} />
     </>

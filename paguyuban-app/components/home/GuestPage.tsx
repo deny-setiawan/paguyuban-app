@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { greet, rupiah, timeAgo } from '@/lib/utils'
 import {
   User, MapPin, Lock, Home, ClipboardList, Package, CreditCard,
   Mail, FileText, AlertTriangle, Calendar, Megaphone, Zap,
   BarChart2, Info, Send, CheckCircle, RefreshCw, ArrowLeft,
+  Camera, Image, X, Shield,
 } from 'lucide-react'
 
 interface PengumumanItem {
@@ -37,16 +38,19 @@ interface Props {
 
 type SheetType = 'login' | 'otp' | 'wargaBaru' | 'inventaris' | null
 
-const AGAMA_OPTIONS = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu']
-const KAWIN_OPTIONS = ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati']
+const AGAMA_OPTIONS = ['Islam', 'Kristen Protestan', 'Kristen Katolik', 'Hindu', 'Buddha', 'Konghucu']
+const KAWIN_OPTIONS = ['Menikah', 'Belum Menikah', 'Duda', 'Janda']
 const HUNIAN_OPTIONS = ['Pemilik', 'Sewa', 'Kontrak']
-const HUB_OPTIONS = ['Istri', 'Suami', 'Anak', 'Orang Tua', 'Kakek', 'Nenek', 'Cucu', 'Menantu', 'Adik', 'Kakak', 'Lainnya']
+const HUB_OPTIONS = [
+  'Istri', 'Anak', 'Orang Tua', 'Kakek/Nenek', 'Cucu',
+  'Menantu', 'Mertua', 'Saudara Kandung', 'Keponakan', 'Paman/Bibi', 'Ipar',
+]
 
 const defaultKepala = {
-  nama: '', phone: '', noRumah: '', jk: 'L', agama: 'Islam',
-  kawin: 'Kawin', pekerjaan: '', hunian: 'Pemilik', tgl: '', alamat: '',
+  nama: '', phone: '', noRumah: '', jk: 'L',
+  agama: 'Islam', kawin: 'Menikah', hunian: 'Pemilik', tgl: '',
 }
-const defaultAnggota = { nama: '', hub: 'Istri', agama: 'Islam', jk: 'P', pekerjaan: '' }
+const defaultAnggota = { nama: '', hub: 'Istri', agama: 'Islam', jk: 'P' }
 
 export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rtStats }: Props) {
   const router = useRouter()
@@ -64,9 +68,16 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
   const [nbMode, setNbMode] = useState<'warga_baru' | 'pemutakhiran'>('warga_baru')
   const [nbStep, setNbStep] = useState(1)
   const [kepala, setKepala] = useState({ ...defaultKepala })
-  const [anggotaList, setAnggotaList] = useState([{ ...defaultAnggota }])
+  const [anggotaList, setAnggotaList] = useState<typeof defaultAnggota[]>([])
   const [nbLoading, setNbLoading] = useState(false)
   const [nbMsg, setNbMsg] = useState('')
+
+  // Foto upload
+  const [fotoFiles, setFotoFiles] = useState<File[]>([])
+  const [fotoPreviews, setFotoPreviews] = useState<string[]>([])
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
 
   // Inventaris sewa
   const [sewaItem, setSewaItem] = useState<InventarisItem | null>(null)
@@ -97,8 +108,12 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
       setNbMode(mode || 'warga_baru')
       setNbStep(1)
       setKepala({ ...defaultKepala })
-      setAnggotaList([{ ...defaultAnggota }])
+      setAnggotaList([])
       setNbMsg('')
+      fotoPreviews.forEach(p => URL.revokeObjectURL(p))
+      setFotoFiles([])
+      setFotoPreviews([])
+      setShowConfirmModal(false)
     }
     if (s === 'inventaris') {
       setSewaItem(null); setSewaNama(''); setSewaHp(''); setSewaTgl('')
@@ -108,6 +123,24 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
   }
 
   function closeSheet() { setSheet(null) }
+
+  function addFiles(fileList: FileList | null) {
+    if (!fileList) return
+    const added = Array.from(fileList)
+    const combined = [...fotoFiles, ...added].slice(0, 10)
+    const invalid = Array.from(fileList).find(f => f.size > 5 * 1024 * 1024)
+    if (invalid) { setNbMsg(`File "${invalid.name}" melebihi 5 MB`); return }
+    fotoPreviews.forEach(p => URL.revokeObjectURL(p))
+    setFotoFiles(combined)
+    setFotoPreviews(combined.map(f => f.type.startsWith('image/') ? URL.createObjectURL(f) : ''))
+    setNbMsg('')
+  }
+
+  function removeFile(i: number) {
+    if (fotoFiles[i].type.startsWith('image/')) URL.revokeObjectURL(fotoPreviews[i])
+    setFotoFiles(prev => prev.filter((_, idx) => idx !== i))
+    setFotoPreviews(prev => prev.filter((_, idx) => idx !== i))
+  }
 
   async function sendOtp() {
     const cleaned = phone.replace(/\D/g, '')
@@ -149,11 +182,24 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
     if (nbMode === 'warga_baru' && !kepala.phone.trim()) { setNbMsg('Nomor HP wajib diisi'); return }
     setNbLoading(true); setNbMsg('')
     try {
+      // Upload foto files first if any
+      let fotoUrls: string[] = []
+      if (fotoFiles.length > 0) {
+        const fd = new FormData()
+        fotoFiles.forEach(f => fd.append('files', f))
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const uploadData = await uploadRes.json()
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Gagal upload foto')
+        fotoUrls = uploadData.urls
+      }
+
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jenis: nbMode, nama: kepala.nama, noRumah: kepala.noRumah,
-          phone: kepala.phone, dataKk: kepala, anggota: anggotaList,
+          phone: kepala.phone, dataKk: kepala,
+          anggota: anggotaList.filter(a => a.nama.trim()),
+          fotoFiles: fotoUrls,
         }),
       })
       const data = await res.json()
@@ -195,6 +241,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
   function setAnggota(i: number, field: string, val: string) {
     setAnggotaList(prev => prev.map((a, idx) => idx === i ? { ...a, [field]: val } : a))
   }
+
+  const STEP_LABEL = ['', 'Data Kepala KK', 'Anggota Keluarga', 'Lampirkan Dokumen']
 
   return (
     <>
@@ -465,110 +513,198 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
               ))}
             </div>
             <div style={{ fontSize: 12, color: 'var(--gray500)', marginBottom: 14, textAlign: 'center' }}>
-              Langkah {nbStep} dari 3 — {['', 'Data Kepala KK', 'Anggota Keluarga', 'Konfirmasi'][nbStep]}
+              Langkah {nbStep} dari 3 — {STEP_LABEL[nbStep]}
             </div>
 
-            {/* Step 1 */}
+            {/* ── Step 1: Data Kepala KK ── */}
             {nbStep === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Nama Lengkap *</label>
-                <input className="rl-in" placeholder="Nama sesuai KTP" value={kepala.nama} onChange={e => setKepala(p => ({ ...p, nama: e.target.value }))} />
-                {nbMode === 'warga_baru' && (
-                  <>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Nomor HP (WhatsApp) *</label>
-                    <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={kepala.phone} onChange={e => setKepala(p => ({ ...p, phone: e.target.value }))} />
-                  </>
-                )}
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Blok & No. Rumah</label>
-                <input className="rl-in" placeholder="Mis. A-12 atau No. 5" value={kepala.noRumah} onChange={e => setKepala(p => ({ ...p, noRumah: e.target.value }))} />
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Jenis Kelamin</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[['L', 'Laki-laki'], ['P', 'Perempuan']].map(([val, lbl]) => (
-                    <label key={val} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px', borderRadius: 10, border: `2px solid ${kepala.jk === val ? 'var(--g500)' : 'var(--gray200)'}`, background: kepala.jk === val ? 'var(--g50)' : 'white', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      <input type="radio" style={{ display: 'none' }} checked={kepala.jk === val} onChange={() => setKepala(p => ({ ...p, jk: val }))} />
-                      {lbl}
-                    </label>
-                  ))}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Nama Lengkap *</label>
+                  <input className="rl-in" placeholder="Nama sesuai KTP" value={kepala.nama} onChange={e => setKepala(p => ({ ...p, nama: e.target.value }))} />
                 </div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Agama</label>
-                <select className="rl-in" value={kepala.agama} onChange={e => setKepala(p => ({ ...p, agama: e.target.value }))}>
-                  {AGAMA_OPTIONS.map(a => <option key={a}>{a}</option>)}
-                </select>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Status Perkawinan</label>
-                <select className="rl-in" value={kepala.kawin} onChange={e => setKepala(p => ({ ...p, kawin: e.target.value }))}>
-                  {KAWIN_OPTIONS.map(k => <option key={k}>{k}</option>)}
-                </select>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Pekerjaan</label>
-                <input className="rl-in" placeholder="Mis. Karyawan Swasta, Wiraswasta..." value={kepala.pekerjaan} onChange={e => setKepala(p => ({ ...p, pekerjaan: e.target.value }))} />
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Status Hunian</label>
-                <select className="rl-in" value={kepala.hunian} onChange={e => setKepala(p => ({ ...p, hunian: e.target.value }))}>
-                  {HUNIAN_OPTIONS.map(h => <option key={h}>{h}</option>)}
-                </select>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Tanggal Mulai Menempati</label>
-                <input className="rl-in" type="date" value={kepala.tgl} onChange={e => setKepala(p => ({ ...p, tgl: e.target.value }))} />
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Alamat Lengkap</label>
-                <textarea className="rl-in" placeholder="Alamat lengkap..." rows={3} value={kepala.alamat} onChange={e => setKepala(p => ({ ...p, alamat: e.target.value }))} style={{ resize: 'none', minHeight: 80 }} />
+
+                {nbMode === 'warga_baru' && (
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Nomor HP (WhatsApp) *</label>
+                    <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={kepala.phone} onChange={e => setKepala(p => ({ ...p, phone: e.target.value }))} />
+                    <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Info size={11} /> Masukkan nomor HP aktif yang dipakai WhatsApp — ini akan menjadi akun login Anda.
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Blok & No. Rumah</label>
+                  <input className="rl-in" placeholder="Mis. A-12 atau No. 5" value={kepala.noRumah} onChange={e => setKepala(p => ({ ...p, noRumah: e.target.value }))} />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Jenis Kelamin</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[['L', 'Laki-laki'], ['P', 'Perempuan']].map(([val, lbl]) => (
+                      <label key={val} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px', borderRadius: 10, border: `2px solid ${kepala.jk === val ? 'var(--g500)' : 'var(--gray200)'}`, background: kepala.jk === val ? 'var(--g50)' : 'white', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                        <input type="radio" style={{ display: 'none' }} checked={kepala.jk === val} onChange={() => setKepala(p => ({ ...p, jk: val }))} />
+                        {lbl}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agama + Status Perkawinan in one row */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Agama</label>
+                    <select className="rl-in" value={kepala.agama} onChange={e => setKepala(p => ({ ...p, agama: e.target.value }))}>
+                      {AGAMA_OPTIONS.map(a => <option key={a}>{a}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Status Perkawinan</label>
+                    <select className="rl-in" value={kepala.kawin} onChange={e => setKepala(p => ({ ...p, kawin: e.target.value }))}>
+                      {KAWIN_OPTIONS.map(k => <option key={k}>{k}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Status Hunian + Tanggal Menempati in one row */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Status Hunian</label>
+                    <select className="rl-in" value={kepala.hunian} onChange={e => setKepala(p => ({ ...p, hunian: e.target.value }))}>
+                      {HUNIAN_OPTIONS.map(h => <option key={h}>{h}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Mulai Menempati</label>
+                    <input className="rl-in" type="date" value={kepala.tgl} onChange={e => setKepala(p => ({ ...p, tgl: e.target.value }))} />
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Step 2 */}
+            {/* ── Step 2: Anggota Keluarga ── */}
             {nbStep === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="ib blue">
                   <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <div>Tambahkan anggota keluarga selain kepala KK (opsional).</div>
+                  <div>Tambahkan anggota keluarga yang tinggal serumah di PKR. Tinggal sendiri? Langsung lewati langkah ini.</div>
                 </div>
+
                 {anggotaList.map((a, i) => (
                   <div key={i} style={{ border: '1.5px solid var(--gray200)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                       <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray700)' }}>Anggota {i + 1}</span>
-                      {anggotaList.length > 1 && (
-                        <button onClick={() => setAnggotaList(p => p.filter((_, idx) => idx !== i))}
-                          style={{ border: 'none', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}>
-                          Hapus
-                        </button>
-                      )}
+                      <button onClick={() => setAnggotaList(p => p.filter((_, idx) => idx !== i))}
+                        style={{ border: 'none', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}>
+                        Hapus
+                      </button>
                     </div>
-                    <input className="rl-in" placeholder="Nama lengkap" value={a.nama} onChange={e => setAnggota(i, 'nama', e.target.value)} style={{ marginBottom: 0 }} />
-                    <select className="rl-in" value={a.hub} onChange={e => setAnggota(i, 'hub', e.target.value)} style={{ marginBottom: 0 }}>
-                      {HUB_OPTIONS.map(h => <option key={h}>{h}</option>)}
-                    </select>
+
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Nama Lengkap Sesuai KTP</label>
+                      <input className="rl-in" placeholder="Nama lengkap" value={a.nama} onChange={e => setAnggota(i, 'nama', e.target.value)} style={{ marginBottom: 0 }} />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Hubungan</label>
+                      <select className="rl-in" value={a.hub} onChange={e => setAnggota(i, 'hub', e.target.value)} style={{ marginBottom: 0 }}>
+                        {HUB_OPTIONS.map(h => <option key={h}>{h}</option>)}
+                      </select>
+                    </div>
+
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <select className="rl-in" value={a.agama} onChange={e => setAnggota(i, 'agama', e.target.value)} style={{ flex: 1, marginBottom: 0 }}>
-                        {AGAMA_OPTIONS.map(ag => <option key={ag}>{ag}</option>)}
-                      </select>
-                      <select className="rl-in" value={a.jk} onChange={e => setAnggota(i, 'jk', e.target.value)} style={{ flex: '0 0 110px', marginBottom: 0 }}>
-                        <option value="L">Laki-laki</option><option value="P">Perempuan</option>
-                      </select>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Agama</label>
+                        <select className="rl-in" value={a.agama} onChange={e => setAnggota(i, 'agama', e.target.value)} style={{ marginBottom: 0 }}>
+                          {AGAMA_OPTIONS.map(ag => <option key={ag}>{ag}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ flex: '0 0 120px' }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Jenis Kelamin</label>
+                        <select className="rl-in" value={a.jk} onChange={e => setAnggota(i, 'jk', e.target.value)} style={{ marginBottom: 0 }}>
+                          <option value="L">Laki-laki</option>
+                          <option value="P">Perempuan</option>
+                        </select>
+                      </div>
                     </div>
-                    <input className="rl-in" placeholder="Pekerjaan" value={a.pekerjaan} onChange={e => setAnggota(i, 'pekerjaan', e.target.value)} style={{ marginBottom: 0 }} />
                   </div>
                 ))}
-                <button className="rl-b" style={{ height: 44 }} onClick={() => setAnggotaList(p => [...p, { ...defaultAnggota }])}>
-                  + Tambah anggota keluarga
+
+                <button className="rl-b" style={{ height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  onClick={() => setAnggotaList(p => [...p, { ...defaultAnggota }])}>
+                  + Tambah Anggota
                 </button>
               </div>
             )}
 
-            {/* Step 3 */}
+            {/* ── Step 3: Lampirkan Dokumen ── */}
             {nbStep === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="ib blue">
                   <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <div>Pastikan data sudah benar. Pengurus RT akan meninjau dan menghubungi Anda via WhatsApp untuk verifikasi dokumen (KTP & KK).</div>
+                  <div>
+                    Bisa lebih dari satu file (maks. 10 file, 5 MB per file).
+                    Pastikan <b>foto KTP kepala keluarga</b> dan <b>scan Kartu Keluarga</b> terlihat jelas.
+                  </div>
                 </div>
-                <div style={{ background: 'var(--gray50)', borderRadius: 12, padding: '12px 4px' }}>
-                  <div className="kv"><span className="k">Nama</span><span className="v">{kepala.nama}</span></div>
-                  {kepala.phone && <div className="kv"><span className="k">HP</span><span className="v">{kepala.phone}</span></div>}
-                  {kepala.noRumah && <div className="kv"><span className="k">No. Rumah</span><span className="v">{kepala.noRumah}</span></div>}
-                  <div className="kv"><span className="k">Agama</span><span className="v">{kepala.agama}</span></div>
-                  <div className="kv"><span className="k">Status hunian</span><span className="v">{kepala.hunian}</span></div>
-                  <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Anggota</span><span className="v">{anggotaList.filter(a => a.nama.trim()).length} orang</span></div>
+
+                {/* Upload buttons */}
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }}
+                  onChange={e => addFiles(e.target.files)} />
+                <input ref={galleryRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }}
+                  onChange={e => addFiles(e.target.files)} />
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="rl-b" style={{ flex: 1, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: 'column', fontSize: 12, fontWeight: 700 }}
+                    onClick={() => cameraRef.current?.click()}>
+                    <Camera size={20} color="var(--g600)" />
+                    Ambil Foto
+                  </button>
+                  <button className="rl-b" style={{ flex: 1, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: 'column', fontSize: 12, fontWeight: 700 }}
+                    onClick={() => galleryRef.current?.click()}>
+                    <Image size={20} color="var(--g600)" />
+                    Pilih dari Galeri
+                  </button>
                 </div>
-                {nbMsg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10 }}>{nbMsg}</div>}
+
+                {fotoFiles.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {fotoFiles.map((file, i) => (
+                      <div key={i} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)' }}>
+                        {fotoPreviews[i] ? (
+                          <img src={fotoPreviews[i]} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 }}>
+                            <FileText size={24} color="var(--gray400)" />
+                            <span style={{ fontSize: 9, color: 'var(--gray500)', textAlign: 'center', wordBreak: 'break-all', lineHeight: 1.2 }}>{file.name}</span>
+                          </div>
+                        )}
+                        <button onClick={() => removeFile(i)}
+                          style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.55)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                          <X size={12} color="white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {fotoFiles.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--gray400)', fontSize: 12 }}>
+                    Belum ada foto yang dipilih.<br />
+                    <span style={{ fontSize: 11 }}>Lampiran tidak wajib, tapi sangat membantu verifikasi.</span>
+                  </div>
+                )}
+
+                {fotoFiles.length > 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--gray500)', textAlign: 'center' }}>
+                    {fotoFiles.length} file dipilih · Maks. 10 file
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Navigation buttons */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               {nbStep > 1 && (
                 <button className="rl-b" style={{ height: 48, flex: '0 0 90px' }} onClick={() => setNbStep(s => s - 1)}>← Kembali</button>
@@ -581,16 +717,52 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                   Lanjut →
                 </button>
               ) : (
-                <button className="btn-p" style={{ flex: 1, height: 48, gap: 8 }} onClick={submitWargaBaru} disabled={nbLoading}>
-                  {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> Kirim Pendaftaran</>}
+                <button className="btn-p" style={{ flex: 1, height: 48, gap: 8 }}
+                  onClick={() => setShowConfirmModal(true)}
+                  disabled={nbLoading}>
+                  {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> {nbMode === 'warga_baru' ? 'Kirim Pendaftaran' : 'Kirim Pembaruan'}</>}
                 </button>
               )}
             </div>
-            {nbMsg && nbStep < 3 && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{nbMsg}</div>}
+            {nbMsg && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{nbMsg}</div>}
             <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8 }} onClick={closeSheet}>Batal</button>
           </>
         )}
       </div>
+
+      {/* ── Confirmation Modal ── */}
+      {showConfirmModal && (
+        <div className="sheet-mask show" onClick={() => !nbLoading && setShowConfirmModal(false)}>
+          <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '28px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--g50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={24} color="var(--g600)" />
+              </div>
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--gray800)', textAlign: 'center', marginBottom: 10 }}>
+              Persetujuan Data Pribadi
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--gray600)', lineHeight: 1.65, textAlign: 'center', marginBottom: 20, padding: '0 4px' }}>
+              Saya dengan kesadaran penuh mengizinkan pengurus <b>Paguyuban PKR-Pepe</b> untuk menyimpan dan menggunakan data pribadi saya untuk kepentingan lingkungan secara hati-hati dan bertanggungjawab.
+            </div>
+            {nbMsg && (
+              <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginBottom: 12 }}>
+                {nbMsg}
+              </div>
+            )}
+            <button className="btn-p" style={{ width: '100%', height: 48, gap: 8, marginBottom: 10 }}
+              disabled={nbLoading}
+              onClick={async () => { setShowConfirmModal(false); await submitWargaBaru() }}>
+              {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> Setuju &amp; Kirim</>}
+            </button>
+            <button className="rl-b" style={{ width: '100%', height: 44 }}
+              disabled={nbLoading}
+              onClick={() => setShowConfirmModal(false)}>
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Inventaris Sheet ── */}
       <div className={`sheet${sheet === 'inventaris' ? ' show' : ''}`} style={{ maxHeight: '90vh', overflowY: 'auto' }}>

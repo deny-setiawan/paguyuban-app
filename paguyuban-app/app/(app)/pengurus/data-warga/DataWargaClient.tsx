@@ -14,13 +14,22 @@ interface WargaItem {
   jenisKelamin: string | null
   tanggalLahir: string | null
   agama: string | null
-  pekerjaan: string | null
   statusPerkawinan: string | null
   statusHunian: string | null
+  tanggalMenempati: string | null
   statusSosial: string | null
   status: string | null
   phone: string | null
   isActive: boolean | null
+}
+
+const AGAMA_LABEL: Record<string, string> = {
+  'Kristen': 'Kristen Protestan',
+  'Katolik': 'Kristen Katolik',
+}
+function agamaLabel(a: string | null) {
+  if (!a) return '—'
+  return AGAMA_LABEL[a] || a
 }
 
 export default function DataWargaClient({ items }: { items: WargaItem[] }) {
@@ -37,7 +46,6 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
       nik: item.nik || '',
       noRumah: item.noRumah || '',
       noKk: item.noKk || '',
-      pekerjaan: item.pekerjaan || '',
       tanggalLahir: item.tanggalLahir || '',
       statusSosial: item.statusSosial || '',
     })
@@ -75,15 +83,38 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
     <>
       {detail && (
         <div className="sheet-mask show" onClick={() => setDetail(null)}>
-          <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px', maxHeight: '80vh', overflowY: 'auto' }}>
+          <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{detail.namaLengkap}</div>
-            <div style={{ fontSize: 12, color: 'var(--gray500)', marginBottom: 16 }}>No. {detail.noRumah || '-'} · {detail.phone || 'Tamu'}</div>
+            <div style={{ fontSize: 12, color: 'var(--gray500)', marginBottom: 14 }}>
+              No. {detail.noRumah || '-'} · {detail.kkStatus === 'kepala_kk' ? 'Kepala KK' : (detail.hubunganKeluarga || 'Anggota')}
+              {detail.phone && ` · ${detail.phone}`}
+            </div>
+
+            {/* Read-only info */}
+            <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '10px 4px', marginBottom: 14 }}>
+              {detail.agama && (
+                <div className="kv"><span className="k">Agama</span><span className="v">{agamaLabel(detail.agama)}</span></div>
+              )}
+              {detail.jenisKelamin && (
+                <div className="kv"><span className="k">Jenis Kelamin</span><span className="v">{detail.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span></div>
+              )}
+              {detail.statusPerkawinan && (
+                <div className="kv"><span className="k">Status Kawin</span><span className="v">{detail.statusPerkawinan}</span></div>
+              )}
+              {detail.statusHunian && (
+                <div className="kv"><span className="k">Hunian</span><span className="v">{detail.statusHunian}</span></div>
+              )}
+              {detail.tanggalMenempati && (
+                <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Mulai Menempati</span><span className="v">{detail.tanggalMenempati}</span></div>
+              )}
+            </div>
+
+            {/* Editable fields */}
             <input className="inp" value={editForm.namaLengkap || ''} onChange={e => setEditForm(f => ({ ...f, namaLengkap: e.target.value }))} placeholder="Nama lengkap" />
             <input className="inp" value={editForm.nik || ''} onChange={e => setEditForm(f => ({ ...f, nik: e.target.value }))} placeholder="NIK (16 digit)" maxLength={16} />
             <input className="inp" value={editForm.noKk || ''} onChange={e => setEditForm(f => ({ ...f, noKk: e.target.value }))} placeholder="No. KK" maxLength={16} />
             <input className="inp" value={editForm.noRumah || ''} onChange={e => setEditForm(f => ({ ...f, noRumah: e.target.value }))} placeholder="No. Rumah" />
             <input className="inp" value={editForm.tanggalLahir || ''} onChange={e => setEditForm(f => ({ ...f, tanggalLahir: e.target.value }))} placeholder="Tanggal lahir (YYYY-MM-DD)" />
-            <input className="inp" value={editForm.pekerjaan || ''} onChange={e => setEditForm(f => ({ ...f, pekerjaan: e.target.value }))} placeholder="Pekerjaan" />
             <select className="inp" value={editForm.statusSosial || ''} onChange={e => setEditForm(f => ({ ...f, statusSosial: e.target.value }))}>
               <option value="">Status sosial...</option>
               {['mampu', 'kurang_mampu', 'tidak_mampu', 'lansia', 'disabilitas'].map(s => (
@@ -123,7 +154,11 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
                       {w.namaLengkap}
                       {w.kkStatus === 'kepala_kk' && <span className="pill" style={{ background: 'var(--g50)', color: 'var(--g700)' }}>Kepala KK</span>}
                     </div>
-                    <div className="pi-d">{w.hubunganKeluarga || w.kkStatus || '-'} · {w.pekerjaan || 'Tidak diisi'}</div>
+                    <div className="pi-d">
+                      {w.hubunganKeluarga || w.kkStatus || '-'}
+                      {w.agama && ` · ${agamaLabel(w.agama)}`}
+                      {w.statusHunian && ` · ${w.statusHunian}`}
+                    </div>
                     {w.phone && <div className="pi-d" style={{ color: 'var(--g600)' }}>{w.phone}</div>}
                   </div>
                 </div>

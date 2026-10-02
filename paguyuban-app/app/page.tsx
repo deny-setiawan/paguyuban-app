@@ -83,7 +83,6 @@ export default async function HomePage() {
           pemutakhiranActive={defaultRt?.pemutakhiranActive ?? false}
           pemutakhiranTahun={defaultRt?.pemutakhiranTahun ?? null}
         />
-        <BottomNav />
       </Shell>
     )
   }

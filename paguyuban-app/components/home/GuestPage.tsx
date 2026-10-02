@@ -7,7 +7,7 @@ import {
   User, MapPin, Lock, Home, ClipboardList, Package, CreditCard,
   Mail, FileText, AlertTriangle, Calendar, Megaphone, Zap,
   BarChart2, Info, Send, CheckCircle, RefreshCw, ArrowLeft,
-  Camera, Image, X, Shield,
+  Camera, Image, X, Shield, Bell,
 } from 'lucide-react'
 
 interface PengumumanItem {
@@ -28,7 +28,7 @@ interface Props {
   pemutakhiranTahun?: number | null
 }
 
-type SheetType = 'login' | 'otp' | 'wargaBaru' | 'inventaris' | null
+type SheetType = 'login' | 'otp' | 'wargaBaru' | 'inventaris' | 'pengumuman' | null
 
 const AGAMA_OPTIONS = ['Islam', 'Kristen Protestan', 'Kristen Katolik', 'Hindu', 'Buddha', 'Konghucu']
 const KAWIN_OPTIONS = ['Menikah', 'Belum Menikah', 'Duda', 'Janda']
@@ -302,7 +302,7 @@ export default function GuestPage({
         <div className="tb-rt"><span className="tb-chip"><MapPin size={12} /> {rtName}</span></div>
       </div>
 
-      <div className="body">
+      <div className="body" style={{ paddingBottom: 80 }}>
         {/* Banner pemutakhiran — only shown when admin has enabled it */}
         {pemutakhiranActive && (
           <div className="status-banner aktif" style={{ cursor: 'pointer' }} onClick={() => openSheet('wargaBaru', 'pemutakhiran')}>
@@ -338,25 +338,25 @@ export default function GuestPage({
         <div>
           <div className="sec-h" style={{ marginBottom: 12 }}><div className="t"><BarChart2 size={16} /> Ringkasan RT</div></div>
           <div className="rl-st">
-            <div>
+            <div style={{ cursor: 'pointer' }} onClick={() => openSheet('login')}>
               <b style={(rtStats?.jumlahWarga || 0) > 0 ? { display: 'block', fontSize: 16, fontWeight: 800 } : { filter: 'blur(4px)', userSelect: 'none', display: 'block', fontSize: 16, fontWeight: 800 }}>
                 {(rtStats?.jumlahWarga || 0) > 0 ? rtStats!.jumlahWarga : '000'}
               </b>
               <span>Jumlah warga</span>
             </div>
-            <div>
+            <div style={{ cursor: 'pointer' }} onClick={() => openSheet('login')}>
               <b style={(rtStats?.jumlahKk || 0) > 0 ? { display: 'block', fontSize: 16, fontWeight: 800 } : { filter: 'blur(4px)', userSelect: 'none', display: 'block', fontSize: 16, fontWeight: 800 }}>
                 {(rtStats?.jumlahKk || 0) > 0 ? rtStats!.jumlahKk : '00'}
               </b>
               <span>Jumlah KK</span>
             </div>
-            <div>
+            <div style={{ cursor: 'pointer' }} onClick={() => openSheet('login')}>
               <b style={{ filter: 'blur(4px)', userSelect: 'none', display: 'block', fontSize: 16, fontWeight: 800 }}>Rp 0jt</b>
               <span>Saldo kas</span>
             </div>
           </div>
           <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--gray400)', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <Lock size={10} /> Login untuk melihat saldo kas RT
+            <Lock size={10} /> Ketuk angka di atas untuk login
           </div>
         </div>
 
@@ -385,7 +385,10 @@ export default function GuestPage({
 
         {pengumuman.length > 0 && (
           <div>
-            <div className="sec-h" style={{ marginBottom: 12 }}><div className="t"><Megaphone size={16} /> Pengumuman RT</div></div>
+            <div className="sec-h" style={{ marginBottom: 12 }}>
+              <div className="t"><Megaphone size={16} /> Pengumuman RT</div>
+              <button style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: 'var(--g600)', cursor: 'pointer', fontFamily: 'var(--f)' }} onClick={() => openSheet('pengumuman')}>Semua ›</button>
+            </div>
             <div className="peng-card">
               {pengumuman.map(p => {
                 const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
@@ -751,6 +754,42 @@ export default function GuestPage({
         </div>
       )}
 
+      {/* ── Pengumuman Sheet ── */}
+      <div className={`sheet${sheet === 'pengumuman' ? ' show' : ''}`} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="sheet-grip" />
+        <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Bell size={18} /> Pengumuman RT</div>
+        <div className="sheet-d">Informasi terbaru dari pengurus RT.</div>
+        {pengumuman.length === 0 ? (
+          <div className="empty">
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Megaphone size={38} color="var(--gray400)" /></div>
+            <div className="e-t">Belum ada pengumuman</div>
+            <div className="e-d">Info dari Ketua RT akan muncul di sini.</div>
+          </div>
+        ) : (
+          <div className="peng-card" style={{ margin: 0 }}>
+            {pengumuman.map(p => {
+              const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
+              const IcoEl = pri ? <AlertTriangle size={18} color="var(--red)" /> : p.kategori === 'acara' ? <Calendar size={18} color="var(--blue)" /> : <Megaphone size={18} color="var(--orange)" />
+              const bg = pri ? 'var(--red-l)' : p.kategori === 'acara' ? 'var(--blue-l)' : 'var(--orange-l)'
+              return (
+                <div key={p.id} className="peng-item" style={{ alignItems: 'flex-start' }}>
+                  <div className="pi-ico" style={{ background: bg, marginTop: 2 }}>{IcoEl}</div>
+                  <div className="pi-body">
+                    <div className="pi-t">
+                      {p.judul}
+                      {pri && <span className="pill penting">Penting</span>}
+                    </div>
+                    {p.isi && <div className="pi-d" style={{ WebkitLineClamp: 'unset', overflow: 'visible' }}>{p.isi}</div>}
+                    <div className="pi-time">{timeAgo(p.createdAt)}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 16 }} onClick={closeSheet}>Tutup</button>
+      </div>
+
       {/* ── Inventaris Sheet ── */}
       <div className={`sheet${sheet === 'inventaris' ? ' show' : ''}`} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="sheet-grip" />
@@ -822,6 +861,30 @@ export default function GuestPage({
             <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 16 }} onClick={closeSheet}>Tutup</button>
           </>
         )}
+      </div>
+
+      {/* ── Guest BottomNav ── */}
+      <div className="botnav">
+        <div className="bn on">
+          <div className="bn-i"><Home size={21} /></div>
+          <div className="bn-l">Beranda</div>
+        </div>
+        <div className="bn" onClick={() => openSheet('login')}>
+          <div className="bn-i"><CreditCard size={21} /></div>
+          <div className="bn-l">Iuran</div>
+        </div>
+        <div className="bn bn-fab" onClick={() => openSheet('login')}>
+          <div className="fab"><Megaphone size={23} /></div>
+          <div className="fab-l">Lapor</div>
+        </div>
+        <div className={`bn${sheet === 'pengumuman' ? ' on' : ''}`} onClick={() => openSheet('pengumuman')}>
+          <div className="bn-i"><Bell size={21} /></div>
+          <div className="bn-l">Info</div>
+        </div>
+        <div className="bn" onClick={() => openSheet('login')}>
+          <div className="bn-i"><User size={21} /></div>
+          <div className="bn-l">Profil</div>
+        </div>
       </div>
     </>
   )

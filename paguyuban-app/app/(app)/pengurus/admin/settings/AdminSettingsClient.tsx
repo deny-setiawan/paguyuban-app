@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, Save } from 'lucide-react'
+import { CheckCircle, Save, ClipboardList, ToggleLeft, ToggleRight } from 'lucide-react'
 
 interface RtData {
   id: string
@@ -18,6 +18,8 @@ interface RtData {
   bankAtasNama: string | null
   ketuaNama: string | null
   temaWarna: string | null
+  pemutakhiranActive: boolean
+  pemutakhiranTahun: number | null
 }
 
 export default function AdminSettingsClient({ rt }: { rt: RtData }) {
@@ -47,6 +49,9 @@ export default function AdminSettingsClient({ rt }: { rt: RtData }) {
         onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
     </div>
   )
+
+  const currentYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 1 + i)
 
   return (
     <form onSubmit={submit}>
@@ -88,7 +93,43 @@ export default function AdminSettingsClient({ rt }: { rt: RtData }) {
         </div>
       </div>
 
-      <button className="btn-primary" type="submit" style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+      {/* Program Pemutakhiran Data */}
+      <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--gray600)', marginBottom: 8, marginTop: 16, letterSpacing: 1 }}>PROGRAM PEMUTAKHIRAN DATA</div>
+      <div style={{ background: 'var(--gray50)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--gray800)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ClipboardList size={14} color="var(--g600)" /> Status Program
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 2 }}>
+              {form.pemutakhiranActive
+                ? `Aktif — banner tampil di halaman publik (Tahun ${form.pemutakhiranTahun || currentYear})`
+                : 'Nonaktif — banner tersembunyi dari halaman publik'}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm(f => ({ ...f, pemutakhiranActive: !f.pemutakhiranActive }))}
+            style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}>
+            {form.pemutakhiranActive
+              ? <ToggleRight size={38} color="var(--g500)" />
+              : <ToggleLeft size={38} color="var(--gray300)" />}
+          </button>
+        </div>
+
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Tahun Program</label>
+          <select className="inp" value={form.pemutakhiranTahun || currentYear}
+            onChange={e => setForm(f => ({ ...f, pemutakhiranTahun: Number(e.target.value) }))}>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 4 }}>
+            Judul banner akan otomatis menjadi &quot;Program Pemutakhiran Data Warga {form.pemutakhiranTahun || currentYear}&quot;
+          </div>
+        </div>
+      </div>
+
+      <button className="btn-primary" type="submit" style={{ width: '100%', marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
         disabled={loading}>
         {loading ? 'Menyimpan...' : <><Save size={16} /> Simpan Pengaturan</>}
       </button>

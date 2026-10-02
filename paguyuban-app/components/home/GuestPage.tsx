@@ -11,29 +11,21 @@ import {
 } from 'lucide-react'
 
 interface PengumumanItem {
-  id: string
-  judul: string
-  isi: string | null
-  kategori: string | null
-  prioritas: string | null
-  createdAt: string
+  id: string; judul: string; isi: string | null
+  kategori: string | null; prioritas: string | null; createdAt: string
 }
-
 interface InventarisItem {
-  id: string
-  nama: string
-  hargaSewa: number | null
-  stok: number | null
-  fotoUrl: string | null
-  deskripsi: string | null
+  id: string; nama: string; hargaSewa: number | null
+  stok: number | null; fotoUrl: string | null; deskripsi: string | null
 }
-
 interface Props {
   rtName: string
   rtId?: string | null
   pengumuman?: PengumumanItem[]
   inventaris?: InventarisItem[]
   rtStats?: { jumlahWarga: number; jumlahKk: number }
+  pemutakhiranActive?: boolean
+  pemutakhiranTahun?: number | null
 }
 
 type SheetType = 'login' | 'otp' | 'wargaBaru' | 'inventaris' | null
@@ -52,7 +44,10 @@ const defaultKepala = {
 }
 const defaultAnggota = { nama: '', hub: 'Istri', agama: 'Islam', jk: 'P' }
 
-export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rtStats }: Props) {
+export default function GuestPage({
+  rtName, pengumuman = [], inventaris = [], rtStats,
+  pemutakhiranActive = false, pemutakhiranTahun,
+}: Props) {
   const router = useRouter()
   const [sheet, setSheet] = useState<SheetType>(null)
   const [greeting, setGreeting] = useState('')
@@ -72,6 +67,10 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
   const [nbLoading, setNbLoading] = useState(false)
   const [nbMsg, setNbMsg] = useState('')
 
+  // Phone check for pemutakhiran
+  const [phoneCheck, setPhoneCheck] = useState<{ found: boolean; nama?: string } | null>(null)
+  const [phoneChecking, setPhoneChecking] = useState(false)
+
   // Foto upload
   const [fotoFiles, setFotoFiles] = useState<File[]>([])
   const [fotoPreviews, setFotoPreviews] = useState<string[]>([])
@@ -89,6 +88,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
   const [sewaMsg, setSewaMsg] = useState('')
   const [sewaDone, setSewaDone] = useState(false)
 
+  const tahunPemutakhiran = pemutakhiranTahun || new Date().getFullYear()
+
   useEffect(() => { setGreeting(greet()) }, [])
 
   useEffect(() => {
@@ -103,6 +104,9 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
     return () => clearTimeout(t)
   }, [countdown])
 
+  // Reset phoneCheck when phone changes
+  useEffect(() => { setPhoneCheck(null) }, [kepala.phone])
+
   function openSheet(s: SheetType, mode?: 'warga_baru' | 'pemutakhiran') {
     if (s === 'wargaBaru') {
       setNbMode(mode || 'warga_baru')
@@ -110,6 +114,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
       setKepala({ ...defaultKepala })
       setAnggotaList([])
       setNbMsg('')
+      setPhoneCheck(null)
+      setPhoneChecking(false)
       fotoPreviews.forEach(p => URL.revokeObjectURL(p))
       setFotoFiles([])
       setFotoPreviews([])
@@ -121,7 +127,6 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
     }
     setSheet(s)
   }
-
   function closeSheet() { setSheet(null) }
 
   function addFiles(fileList: FileList | null) {
@@ -135,7 +140,6 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
     setFotoPreviews(combined.map(f => f.type.startsWith('image/') ? URL.createObjectURL(f) : ''))
     setNbMsg('')
   }
-
   function removeFile(i: number) {
     if (fotoFiles[i].type.startsWith('image/')) URL.revokeObjectURL(fotoPreviews[i])
     setFotoFiles(prev => prev.filter((_, idx) => idx !== i))
@@ -177,12 +181,37 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
     } finally { setLoading(false) }
   }
 
+  async function handleStep1Next() {
+    if (!kepala.nama.trim()) { setNbMsg('Nama wajib diisi'); return }
+    setNbMsg('')
+
+    // For pemutakhiran with phone: check if phone exists (if not yet checked)
+    if (nbMode === 'pemutakhiran' && kepala.phone.trim() && !phoneCheck) {
+      setPhoneChecking(true)
+      try {
+        const res = await fetch('/api/check-phone', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: kepala.phone }),
+        })
+        const data = await res.json()
+        setPhoneCheck(data)
+      } catch {
+        setPhoneCheck({ found: false })
+      } finally {
+        setPhoneChecking(false)
+      }
+      return // Show result first, user clicks Lanjut again to proceed
+    }
+
+    setPhoneCheck(null)
+    setNbStep(2)
+  }
+
   async function submitWargaBaru() {
     if (!kepala.nama.trim()) { setNbMsg('Nama wajib diisi'); return }
     if (nbMode === 'warga_baru' && !kepala.phone.trim()) { setNbMsg('Nomor HP wajib diisi'); return }
     setNbLoading(true); setNbMsg('')
     try {
-      // Upload foto files first if any
       let fotoUrls: string[] = []
       if (fotoFiles.length > 0) {
         const fd = new FormData()
@@ -192,7 +221,6 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         if (!uploadRes.ok) throw new Error(uploadData.error || 'Gagal upload foto')
         fotoUrls = uploadData.urls
       }
-
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -237,12 +265,20 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
     return c.length < 8 ? p : c.slice(0, 4) + '••••' + c.slice(-3)
   }
   const fmtCountdown = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-
   function setAnggota(i: number, field: string, val: string) {
     setAnggotaList(prev => prev.map((a, idx) => idx === i ? { ...a, [field]: val } : a))
   }
 
   const STEP_LABEL = ['', 'Data Kepala KK', 'Anggota Keluarga', 'Lampirkan Dokumen']
+
+  // Step 1 Lanjut button label
+  const lanjutLabel = (() => {
+    if (nbMode !== 'pemutakhiran' || !kepala.phone.trim()) return 'Lanjut →'
+    if (phoneChecking) return 'Memeriksa nomor…'
+    if (!phoneCheck) return 'Lanjut →'
+    if (phoneCheck.found) return `Lanjut — Perbarui data →`
+    return 'Lanjut — Daftar akun baru →'
+  })()
 
   return (
     <>
@@ -254,32 +290,29 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
             <div className="g">{greeting}</div>
             <div className="n">Selamat datang</div>
           </div>
-          <button
-            onClick={() => openSheet('login')}
-            style={{
-              height: 38, padding: '0 14px', border: '1px solid rgba(255,255,255,.22)',
-              borderRadius: 12, background: 'rgba(255,255,255,.18)', color: '#fff',
-              fontFamily: 'var(--f)', fontSize: 13, fontWeight: 800, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
+          <button onClick={() => openSheet('login')} style={{
+            height: 38, padding: '0 14px', border: '1px solid rgba(255,255,255,.22)',
+            borderRadius: 12, background: 'rgba(255,255,255,.18)', color: '#fff',
+            fontFamily: 'var(--f)', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
             <Lock size={14} /> Masuk
           </button>
         </div>
-        <div className="tb-rt">
-          <span className="tb-chip"><MapPin size={12} /> {rtName}</span>
-        </div>
+        <div className="tb-rt"><span className="tb-chip"><MapPin size={12} /> {rtName}</span></div>
       </div>
 
       <div className="body">
-        {/* Banner pemutakhiran */}
-        <div className="status-banner aktif" style={{ cursor: 'pointer' }} onClick={() => openSheet('wargaBaru', 'pemutakhiran')}>
-          <div className="sb-ico"><ClipboardList size={24} /></div>
-          <div className="sb-txt">
-            <div className="sb-l1">Program Pemutakhiran Data Warga 2026</div>
-            <div className="sb-l2">Perbarui data KK & anggota keluarga Anda. Klik untuk mulai.</div>
+        {/* Banner pemutakhiran — only shown when admin has enabled it */}
+        {pemutakhiranActive && (
+          <div className="status-banner aktif" style={{ cursor: 'pointer' }} onClick={() => openSheet('wargaBaru', 'pemutakhiran')}>
+            <div className="sb-ico"><ClipboardList size={24} /></div>
+            <div className="sb-txt">
+              <div className="sb-l1">Program Pemutakhiran Data Warga {tahunPemutakhiran}</div>
+              <div className="sb-l2">Perbarui data KK & anggota keluarga Anda. Klik untuk mulai.</div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Banner warga baru */}
         <div className="status-banner pending" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
@@ -291,11 +324,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn-p"
-              style={{ flex: 1, height: 44, background: 'linear-gradient(135deg,#b7791f,var(--gold))', gap: 6 }}
-              onClick={() => openSheet('wargaBaru', 'warga_baru')}
-            >
+            <button className="btn-p" style={{ flex: 1, height: 44, background: 'linear-gradient(135deg,#b7791f,var(--gold))', gap: 6 }}
+              onClick={() => openSheet('wargaBaru', 'warga_baru')}>
               <FileText size={16} /> Daftar warga baru
             </button>
             <button className="rl-b" style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => openSheet('login')}>
@@ -306,9 +336,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
 
         {/* Ringkasan RT */}
         <div>
-          <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><BarChart2 size={16} /> Ringkasan RT</div>
-          </div>
+          <div className="sec-h" style={{ marginBottom: 12 }}><div className="t"><BarChart2 size={16} /> Ringkasan RT</div></div>
           <div className="rl-st">
             <div>
               <b style={(rtStats?.jumlahWarga || 0) > 0 ? { display: 'block', fontSize: 16, fontWeight: 800 } : { filter: 'blur(4px)', userSelect: 'none', display: 'block', fontSize: 16, fontWeight: 800 }}>
@@ -334,9 +362,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
 
         {/* Menu layanan */}
         <div>
-          <div className="sec-h" style={{ marginBottom: 12 }}>
-            <div className="t"><Zap size={16} /> Layanan umum</div>
-          </div>
+          <div className="sec-h" style={{ marginBottom: 12 }}><div className="t"><Zap size={16} /> Layanan umum</div></div>
           <div className="menu-grid">
             <div className="menu-item" onClick={() => openSheet('inventaris')}>
               <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
@@ -357,29 +383,19 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           </div>
         </div>
 
-        {/* Pengumuman RT */}
         {pengumuman.length > 0 && (
           <div>
-            <div className="sec-h" style={{ marginBottom: 12 }}>
-              <div className="t"><Megaphone size={16} /> Pengumuman RT</div>
-            </div>
+            <div className="sec-h" style={{ marginBottom: 12 }}><div className="t"><Megaphone size={16} /> Pengumuman RT</div></div>
             <div className="peng-card">
               {pengumuman.map(p => {
                 const pri = p.prioritas === 'penting' || p.prioritas === 'tinggi'
-                const IcoEl = pri
-                  ? <AlertTriangle size={18} color="var(--red)" />
-                  : p.kategori === 'acara'
-                    ? <Calendar size={18} color="var(--blue)" />
-                    : <Megaphone size={18} color="var(--orange)" />
+                const IcoEl = pri ? <AlertTriangle size={18} color="var(--red)" /> : p.kategori === 'acara' ? <Calendar size={18} color="var(--blue)" /> : <Megaphone size={18} color="var(--orange)" />
                 const bg = pri ? 'var(--red-l)' : p.kategori === 'acara' ? 'var(--blue-l)' : 'var(--orange-l)'
                 return (
                   <div key={p.id} className="peng-item">
                     <div className="pi-ico" style={{ background: bg }}>{IcoEl}</div>
                     <div className="pi-body">
-                      <div className="pi-t">
-                        {p.judul}
-                        {pri && <span className="pill penting">Penting</span>}
-                      </div>
+                      <div className="pi-t">{p.judul}{pri && <span className="pill penting">Penting</span>}</div>
                       {p.isi && <div className="pi-d" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.isi}</div>}
                       <div className="pi-time">{timeAgo(p.createdAt)}</div>
                     </div>
@@ -390,34 +406,23 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           </div>
         )}
 
-        {/* Inventaris preview */}
         {inventaris.length > 0 && (
           <div>
             <div className="sec-h" style={{ marginBottom: 12 }}>
               <div className="t"><Package size={16} /> Inventaris RT</div>
-              <button
-                style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: 'var(--g600)', cursor: 'pointer', fontFamily: 'var(--f)' }}
-                onClick={() => openSheet('inventaris')}
-              >
-                Semua ›
-              </button>
+              <button style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: 'var(--g600)', cursor: 'pointer', fontFamily: 'var(--f)' }} onClick={() => openSheet('inventaris')}>Semua ›</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {inventaris.slice(0, 3).map(item => (
-                <div
-                  key={item.id} className="iv-card"
-                  style={{ cursor: (item.stok || 0) > 0 ? 'pointer' : 'default' }}
-                  onClick={() => { if ((item.stok || 0) > 0) { setSewaItem(item); openSheet('inventaris') } }}
-                >
+                <div key={item.id} className="iv-card" style={{ cursor: (item.stok || 0) > 0 ? 'pointer' : 'default' }}
+                  onClick={() => { if ((item.stok || 0) > 0) { setSewaItem(item); openSheet('inventaris') } }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Package size={22} color="var(--gold)" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--gray800)' }}>{item.nama}</div>
-                      <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>
-                        Stok: {item.stok ?? 0} · {item.hargaSewa ? rupiah(item.hargaSewa) + '/hari' : 'Gratis'}
-                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Stok: {item.stok ?? 0} · {item.hargaSewa ? rupiah(item.hargaSewa) + '/hari' : 'Gratis'}</div>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, flexShrink: 0, background: (item.stok || 0) > 0 ? 'var(--g50)' : 'var(--gray100)', color: (item.stok || 0) > 0 ? 'var(--g700)' : 'var(--gray400)' }}>
                       {(item.stok || 0) > 0 ? 'Tersedia' : 'Habis'}
@@ -431,19 +436,17 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
       </div>
 
       {/* Sheet mask */}
-      {sheet && <div className="sheet-mask show" onClick={closeSheet} />}
+      {(sheet && !showConfirmModal) && <div className="sheet-mask show" onClick={closeSheet} />}
+      {showConfirmModal && <div className="sheet-mask show" style={{ zIndex: 9998 }} onClick={() => !nbLoading && setShowConfirmModal(false)} />}
 
       {/* ── Login Sheet ── */}
       <div className={`sheet${sheet === 'login' ? ' show' : ''}`}>
         <div className="sheet-grip" />
         <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Lock size={18} /> Masuk sebagai warga</div>
         <div className="sheet-d">Masukkan nomor HP kepala keluarga yang sudah terdaftar. Kode OTP dikirim via WhatsApp.</div>
-        <input
-          className="rl-in" inputMode="tel" placeholder="Nomor HP, mis. 0812xxxxxxxx"
+        <input className="rl-in" inputMode="tel" placeholder="Nomor HP, mis. 0812xxxxxxxx"
           value={phone} onChange={e => { setPhone(e.target.value); setMsg('') }}
-          onKeyDown={e => e.key === 'Enter' && sendOtp()}
-          autoFocus={sheet === 'login'}
-        />
+          onKeyDown={e => e.key === 'Enter' && sendOtp()} autoFocus={sheet === 'login'} />
         {msg && <div style={{ fontSize: 11.5, color: 'var(--red)', margin: '-4px 0 8px' }}>{msg}</div>}
         <button className="btn-p" onClick={sendOtp} disabled={loading} style={{ gap: 8 }}>
           {loading ? 'Mengirim…' : <><Send size={16} /> Kirim OTP via WhatsApp</>}
@@ -463,13 +466,10 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           Kode 6 digit dikirim ke {maskPhone(phone)}
           {countdown > 0 && <span style={{ color: 'var(--g600)', fontWeight: 700 }}> · {fmtCountdown(countdown)}</span>}
         </div>
-        <input
-          className="rl-in" inputMode="numeric" maxLength={6} placeholder="••••••"
+        <input className="rl-in" inputMode="numeric" maxLength={6} placeholder="••••••"
           value={otp} onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setMsg('') }}
-          onKeyDown={e => e.key === 'Enter' && otp.length === 6 && verifyOtp()}
-          autoFocus={sheet === 'otp'}
-          style={{ letterSpacing: 8, textAlign: 'center', fontSize: 24, fontWeight: 800 }}
-        />
+          onKeyDown={e => e.key === 'Enter' && otp.length === 6 && verifyOtp()} autoFocus={sheet === 'otp'}
+          style={{ letterSpacing: 8, textAlign: 'center', fontSize: 24, fontWeight: 800 }} />
         {msg && <div style={{ fontSize: 11.5, color: 'var(--red)', margin: '-4px 0 8px' }}>{msg}</div>}
         <button className="btn-p" onClick={verifyOtp} disabled={loading} style={{ gap: 8 }}>
           {loading ? 'Memverifikasi…' : <><CheckCircle size={16} /> Verifikasi & masuk</>}
@@ -478,7 +478,8 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
           <ArrowLeft size={14} style={{ marginRight: 4 }} /> Ganti nomor
         </button>
         {countdown === 0 && (
-          <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => { sendOtp(); setOtp('') }} disabled={loading}>
+          <button className="rl-b" style={{ width: '100%', height: 44, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            onClick={() => { sendOtp(); setOtp('') }} disabled={loading}>
             <RefreshCw size={14} /> Kirim ulang OTP
           </button>
         )}
@@ -489,24 +490,22 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         <div className="sheet-grip" />
         {nbStep === 99 ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
-              <CheckCircle size={52} color="var(--g500)" />
-            </div>
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><CheckCircle size={52} color="var(--g500)" /></div>
             <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--gray800)', marginBottom: 8 }}>
               {nbMode === 'warga_baru' ? 'Pendaftaran Terkirim!' : 'Pemutakhiran Terkirim!'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--gray500)', lineHeight: 1.6 }}>
-              Data Anda sedang ditinjau oleh Ketua RT.<br />
-              Anda akan mendapat konfirmasi via WhatsApp.
+              Data Anda sedang ditinjau oleh Ketua RT.<br />Anda akan mendapat konfirmasi via WhatsApp.
             </div>
             <button className="btn-p" style={{ marginTop: 20 }} onClick={closeSheet}>Tutup</button>
           </div>
         ) : (
           <>
             <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {nbMode === 'warga_baru' ? <><FileText size={18} /> Pendaftaran Warga Baru</> : <><ClipboardList size={18} /> Pemutakhiran Data Warga</>}
+              {nbMode === 'warga_baru'
+                ? <><FileText size={18} /> Pendaftaran Warga Baru</>
+                : <><ClipboardList size={18} /> Pemutakhiran Data Warga {tahunPemutakhiran}</>}
             </div>
-            {/* Step progress */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
               {[1, 2, 3].map(s => (
                 <div key={s} style={{ flex: 1, height: 4, borderRadius: 4, background: nbStep >= s ? 'var(--g500)' : 'var(--gray200)', transition: 'background .2s' }} />
@@ -516,7 +515,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
               Langkah {nbStep} dari 3 — {STEP_LABEL[nbStep]}
             </div>
 
-            {/* ── Step 1: Data Kepala KK ── */}
+            {/* ── Step 1 ── */}
             {nbStep === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div>
@@ -524,15 +523,35 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                   <input className="rl-in" placeholder="Nama sesuai KTP" value={kepala.nama} onChange={e => setKepala(p => ({ ...p, nama: e.target.value }))} />
                 </div>
 
-                {nbMode === 'warga_baru' && (
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Nomor HP (WhatsApp) *</label>
-                    <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={kepala.phone} onChange={e => setKepala(p => ({ ...p, phone: e.target.value }))} />
-                    <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Info size={11} /> Masukkan nomor HP aktif yang dipakai WhatsApp — ini akan menjadi akun login Anda.
-                    </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>
+                    Nomor HP (WhatsApp) {nbMode === 'warga_baru' ? '*' : ''}
+                  </label>
+                  <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={kepala.phone}
+                    onChange={e => setKepala(p => ({ ...p, phone: e.target.value }))} />
+                  <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                    <Info size={11} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>Masukkan nomor HP aktif yang dipakai WhatsApp — ini akan menjadi akun login Anda.</span>
                   </div>
-                )}
+
+                  {/* Phone check result */}
+                  {phoneCheck && (
+                    <div className={`ib ${phoneCheck.found ? 'blue' : ''}`} style={{
+                      marginTop: 8,
+                      background: phoneCheck.found ? 'var(--g50)' : 'var(--gray50)',
+                      border: `1px solid ${phoneCheck.found ? 'var(--g200)' : 'var(--gray200)'}`,
+                    }}>
+                      {phoneCheck.found
+                        ? <CheckCircle size={14} color="var(--g600)" style={{ flexShrink: 0, marginTop: 1 }} />
+                        : <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />}
+                      <div style={{ fontSize: 12 }}>
+                        {phoneCheck.found
+                          ? <><b>Nomor terdaftar atas nama: {phoneCheck.nama}</b><br /><span style={{ color: 'var(--gray500)' }}>Data kepala keluarga ini akan diperbarui. Klik &quot;Lanjut&quot; untuk melanjutkan.</span></>
+                          : <><b>Nomor baru — belum terdaftar.</b><br /><span style={{ color: 'var(--gray500)' }}>Akan dibuat akun kepala keluarga baru dengan nomor ini. Klik &quot;Lanjut&quot; untuk melanjutkan.</span></>}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Blok & No. Rumah</label>
@@ -551,7 +570,6 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                   </div>
                 </div>
 
-                {/* Agama + Status Perkawinan in one row */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Agama</label>
@@ -567,7 +585,6 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                   </div>
                 </div>
 
-                {/* Status Hunian + Tanggal Menempati in one row */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Status Hunian</label>
@@ -583,14 +600,13 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
               </div>
             )}
 
-            {/* ── Step 2: Anggota Keluarga ── */}
+            {/* ── Step 2 ── */}
             {nbStep === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="ib blue">
                   <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                   <div>Tambahkan anggota keluarga yang tinggal serumah di PKR. Tinggal sendiri? Langsung lewati langkah ini.</div>
                 </div>
-
                 {anggotaList.map((a, i) => (
                   <div key={i} style={{ border: '1.5px solid var(--gray200)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
@@ -600,19 +616,16 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                         Hapus
                       </button>
                     </div>
-
                     <div>
                       <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Nama Lengkap Sesuai KTP</label>
                       <input className="rl-in" placeholder="Nama lengkap" value={a.nama} onChange={e => setAnggota(i, 'nama', e.target.value)} style={{ marginBottom: 0 }} />
                     </div>
-
                     <div>
                       <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Hubungan</label>
                       <select className="rl-in" value={a.hub} onChange={e => setAnggota(i, 'hub', e.target.value)} style={{ marginBottom: 0 }}>
                         {HUB_OPTIONS.map(h => <option key={h}>{h}</option>)}
                       </select>
                     </div>
-
                     <div style={{ display: 'flex', gap: 8 }}>
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray500)', display: 'block', marginBottom: 3 }}>Agama</label>
@@ -630,7 +643,6 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                     </div>
                   </div>
                 ))}
-
                 <button className="rl-b" style={{ height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   onClick={() => setAnggotaList(p => [...p, { ...defaultAnggota }])}>
                   + Tambah Anggota
@@ -638,88 +650,66 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
               </div>
             )}
 
-            {/* ── Step 3: Lampirkan Dokumen ── */}
+            {/* ── Step 3 ── */}
             {nbStep === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="ib blue">
                   <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <div>
-                    Bisa lebih dari satu file (maks. 10 file, 5 MB per file).
-                    Pastikan <b>foto KTP kepala keluarga</b> dan <b>scan Kartu Keluarga</b> terlihat jelas.
-                  </div>
+                  <div>Bisa lebih dari satu file (maks. 10 file, 5 MB per file). Pastikan <b>foto KTP kepala keluarga</b> dan <b>scan Kartu Keluarga</b> terlihat jelas.</div>
                 </div>
-
-                {/* Upload buttons */}
-                <input ref={cameraRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }}
-                  onChange={e => addFiles(e.target.files)} />
-                <input ref={galleryRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }}
-                  onChange={e => addFiles(e.target.files)} />
-
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
+                <input ref={galleryRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="rl-b" style={{ flex: 1, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: 'column', fontSize: 12, fontWeight: 700 }}
                     onClick={() => cameraRef.current?.click()}>
-                    <Camera size={20} color="var(--g600)" />
-                    Ambil Foto
+                    <Camera size={20} color="var(--g600)" />Ambil Foto
                   </button>
                   <button className="rl-b" style={{ flex: 1, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: 'column', fontSize: 12, fontWeight: 700 }}
                     onClick={() => galleryRef.current?.click()}>
-                    <Image size={20} color="var(--g600)" />
-                    Pilih dari Galeri
+                    <Image size={20} color="var(--g600)" />Pilih dari Galeri
                   </button>
                 </div>
-
-                {fotoFiles.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {fotoFiles.map((file, i) => (
-                      <div key={i} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)' }}>
-                        {fotoPreviews[i] ? (
-                          <img src={fotoPreviews[i]} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 }}>
-                            <FileText size={24} color="var(--gray400)" />
-                            <span style={{ fontSize: 9, color: 'var(--gray500)', textAlign: 'center', wordBreak: 'break-all', lineHeight: 1.2 }}>{file.name}</span>
-                          </div>
-                        )}
-                        <button onClick={() => removeFile(i)}
-                          style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.55)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                          <X size={12} color="white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {fotoFiles.length === 0 && (
+                {fotoFiles.length > 0 ? (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      {fotoFiles.map((file, i) => (
+                        <div key={i} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)' }}>
+                          {fotoPreviews[i]
+                            ? <img src={fotoPreviews[i]} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 }}>
+                                <FileText size={24} color="var(--gray400)" />
+                                <span style={{ fontSize: 9, color: 'var(--gray500)', textAlign: 'center', wordBreak: 'break-all', lineHeight: 1.2 }}>{file.name}</span>
+                              </div>}
+                          <button onClick={() => removeFile(i)} style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.55)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <X size={12} color="white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--gray500)', textAlign: 'center' }}>{fotoFiles.length} file dipilih · Maks. 10 file</div>
+                  </>
+                ) : (
                   <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--gray400)', fontSize: 12 }}>
-                    Belum ada foto yang dipilih.<br />
-                    <span style={{ fontSize: 11 }}>Lampiran tidak wajib, tapi sangat membantu verifikasi.</span>
-                  </div>
-                )}
-
-                {fotoFiles.length > 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--gray500)', textAlign: 'center' }}>
-                    {fotoFiles.length} file dipilih · Maks. 10 file
+                    Belum ada foto yang dipilih.<br /><span style={{ fontSize: 11 }}>Lampiran tidak wajib, tapi sangat membantu verifikasi.</span>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Navigation buttons */}
+            {/* Navigation */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               {nbStep > 1 && (
-                <button className="rl-b" style={{ height: 48, flex: '0 0 90px' }} onClick={() => setNbStep(s => s - 1)}>← Kembali</button>
+                <button className="rl-b" style={{ height: 48, flex: '0 0 90px' }} onClick={() => { setNbStep(s => s - 1); setPhoneCheck(null) }}>← Kembali</button>
               )}
               {nbStep < 3 ? (
-                <button className="btn-p" style={{ flex: 1, height: 48 }} onClick={() => {
-                  if (nbStep === 1 && !kepala.nama.trim()) { setNbMsg('Nama wajib diisi'); return }
-                  setNbMsg(''); setNbStep(s => s + 1)
-                }}>
-                  Lanjut →
+                <button className="btn-p" style={{ flex: 1, height: 48 }}
+                  onClick={nbStep === 1 ? handleStep1Next : () => { setNbMsg(''); setNbStep(s => s + 1) }}
+                  disabled={phoneChecking}>
+                  {lanjutLabel}
                 </button>
               ) : (
                 <button className="btn-p" style={{ flex: 1, height: 48, gap: 8 }}
-                  onClick={() => setShowConfirmModal(true)}
-                  disabled={nbLoading}>
+                  onClick={() => setShowConfirmModal(true)} disabled={nbLoading}>
                   {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> {nbMode === 'warga_baru' ? 'Kirim Pendaftaran' : 'Kirim Pembaruan'}</>}
                 </button>
               )}
@@ -730,37 +720,34 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
         )}
       </div>
 
-      {/* ── Confirmation Modal ── */}
+      {/* ── Confirmation Modal — rendered OUTSIDE the sheet to avoid overflow clipping ── */}
       {showConfirmModal && (
-        <div className="sheet-mask show" onClick={() => !nbLoading && setShowConfirmModal(false)}>
-          <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '28px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--g50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Shield size={24} color="var(--g600)" />
-              </div>
+        <div className="sheet show" onClick={e => e.stopPropagation()} style={{ zIndex: 9999, padding: '28px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--g50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={24} color="var(--g600)" />
             </div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--gray800)', textAlign: 'center', marginBottom: 10 }}>
-              Persetujuan Data Pribadi
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--gray600)', lineHeight: 1.65, textAlign: 'center', marginBottom: 20, padding: '0 4px' }}>
-              Saya dengan kesadaran penuh mengizinkan pengurus <b>Paguyuban PKR-Pepe</b> untuk menyimpan dan menggunakan data pribadi saya untuk kepentingan lingkungan secara hati-hati dan bertanggungjawab.
-            </div>
-            {nbMsg && (
-              <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginBottom: 12 }}>
-                {nbMsg}
-              </div>
-            )}
-            <button className="btn-p" style={{ width: '100%', height: 48, gap: 8, marginBottom: 10 }}
-              disabled={nbLoading}
-              onClick={async () => { setShowConfirmModal(false); await submitWargaBaru() }}>
-              {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> Setuju &amp; Kirim</>}
-            </button>
-            <button className="rl-b" style={{ width: '100%', height: 44 }}
-              disabled={nbLoading}
-              onClick={() => setShowConfirmModal(false)}>
-              Batal
-            </button>
           </div>
+          <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--gray800)', textAlign: 'center', marginBottom: 10 }}>
+            Persetujuan Data Pribadi
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--gray600)', lineHeight: 1.65, textAlign: 'center', marginBottom: 20, padding: '0 4px' }}>
+            Saya dengan kesadaran penuh mengizinkan pengurus <b>Paguyuban PKR-Pepe</b> untuk menyimpan dan menggunakan data pribadi saya untuk kepentingan lingkungan secara hati-hati dan bertanggungjawab.
+          </div>
+          {nbMsg && (
+            <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginBottom: 12 }}>
+              {nbMsg}
+            </div>
+          )}
+          <button className="btn-p" style={{ width: '100%', height: 48, gap: 8, marginBottom: 10 }}
+            disabled={nbLoading}
+            onClick={async () => { setShowConfirmModal(false); await submitWargaBaru() }}>
+            {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> Setuju &amp; Kirim</>}
+          </button>
+          <button className="rl-b" style={{ width: '100%', height: 44 }}
+            disabled={nbLoading} onClick={() => setShowConfirmModal(false)}>
+            Batal
+          </button>
         </div>
       )}
 
@@ -775,9 +762,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
             <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Package size={18} /> {sewaItem.nama}</div>
             {sewaDone ? (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
-                  <CheckCircle size={52} color="var(--g500)" />
-                </div>
+                <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><CheckCircle size={52} color="var(--g500)" /></div>
                 <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--gray800)', marginBottom: 8 }}>Permintaan sewa terkirim!</div>
                 <div style={{ fontSize: 13, color: 'var(--gray500)' }}>Pengurus RT akan mengonfirmasi via WhatsApp.</div>
                 <button className="btn-p" style={{ marginTop: 20 }} onClick={closeSheet}>Tutup</button>
@@ -815,8 +800,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {inventaris.map(item => (
-                  <div key={item.id} className="iv-card"
-                    style={{ cursor: (item.stok || 0) > 0 ? 'pointer' : 'default' }}
+                  <div key={item.id} className="iv-card" style={{ cursor: (item.stok || 0) > 0 ? 'pointer' : 'default' }}
                     onClick={() => { if ((item.stok || 0) > 0) setSewaItem(item) }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -825,9 +809,7 @@ export default function GuestPage({ rtName, pengumuman = [], inventaris = [], rt
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--gray800)' }}>{item.nama}</div>
                         {item.deskripsi && <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>{item.deskripsi}</div>}
-                        <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>
-                          Stok: {item.stok ?? 0} · {item.hargaSewa ? rupiah(item.hargaSewa) + '/hari' : 'Gratis'}
-                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Stok: {item.stok ?? 0} · {item.hargaSewa ? rupiah(item.hargaSewa) + '/hari' : 'Gratis'}</div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, flexShrink: 0, background: (item.stok || 0) > 0 ? 'var(--g50)' : 'var(--gray100)', color: (item.stok || 0) > 0 ? 'var(--g700)' : 'var(--gray400)' }}>
                         {(item.stok || 0) > 0 ? 'Pinjam' : 'Habis'}

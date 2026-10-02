@@ -80,6 +80,8 @@ export default async function HomePage() {
           pengumuman={guestPengumuman}
           inventaris={guestInventaris}
           rtStats={rtStats}
+          pemutakhiranActive={defaultRt?.pemutakhiranActive ?? false}
+          pemutakhiranTahun={defaultRt?.pemutakhiranTahun ?? null}
         />
         <BottomNav />
       </Shell>

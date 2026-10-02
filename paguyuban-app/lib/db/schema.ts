@@ -54,6 +54,8 @@ export const rtGroups = pgTable('rt_groups', {
   logoUrl: text('logo_url'),
   temaWarna: varchar('tema_warna', { length: 10 }).default('#1d4ed8'),
   level: varchar('level', { length: 10 }).default('rt'),
+  pemutakhiranActive: boolean('pemutakhiran_active').default(false),
+  pemutakhiranTahun: integer('pemutakhiran_tahun'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

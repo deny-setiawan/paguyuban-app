@@ -39,6 +39,8 @@ export default async function AdminSettingsPage() {
         bankAtasNama: rt.bankAtasNama,
         ketuaNama: rt.ketuaNama,
         temaWarna: rt.temaWarna,
+        pemutakhiranActive: rt.pemutakhiranActive ?? false,
+        pemutakhiranTahun: rt.pemutakhiranTahun ?? null,
       }} />
     </>
   )

@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json()
   const allowed = ['namaRt', 'rtNumber', 'rwNumber', 'kelurahan', 'kecamatan', 'kota',
     'provinsi', 'namaJalan', 'noRekening', 'bankNama', 'bankAtasNama',
-    'ketuaNama', 'logoUrl', 'temaWarna']
+    'ketuaNama', 'logoUrl', 'temaWarna', 'pemutakhiranActive', 'pemutakhiranTahun']
   const updates: Record<string, unknown> = {}
   for (const k of allowed) {
     if (body[k] !== undefined) updates[k] = body[k]

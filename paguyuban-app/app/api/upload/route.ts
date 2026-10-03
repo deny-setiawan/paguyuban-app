@@ -1,23 +1,20 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Auto-configures from CLOUDINARY_URL env var
 cloudinary.config({ secure: true })
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024
 const MAX_FILES = 10
 
 async function uploadToCloudinary(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer())
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      { folder: 'paguyuban', resource_type: 'auto' },
-      (err, result) => {
-        if (err) reject(err)
-        else resolve(result!.secure_url)
-      }
-    ).end(buffer)
+  // Use data URI — avoids Node.js streams which are unreliable in serverless
+  const dataUri = `data:${file.type || 'application/octet-stream'};base64,${buffer.toString('base64')}`
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: 'paguyuban',
+    resource_type: 'auto',
   })
+  return result.secure_url
 }
 
 export async function POST(req: NextRequest) {

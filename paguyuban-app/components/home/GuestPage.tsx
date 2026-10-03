@@ -218,9 +218,10 @@ export default function GuestPage({
         const fd = new FormData()
         fotoFiles.forEach(f => fd.append('files', f))
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
-        const uploadData = await uploadRes.json()
-        if (!uploadRes.ok) {
-          setNbMsg(uploadData.error || 'Gagal upload foto. Silakan coba lagi.')
+        let uploadData: { urls?: string[]; error?: string } = {}
+        try { uploadData = await uploadRes.json() } catch { /* non-JSON error response */ }
+        if (!uploadRes.ok || !uploadData.urls) {
+          setNbMsg(uploadData.error || `Gagal upload foto (HTTP ${uploadRes.status}). Silakan coba lagi.`)
           setNbLoading(false)
           return
         }

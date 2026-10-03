@@ -2,7 +2,19 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
-import { Users, User, CheckCircle, XCircle, FileText, ExternalLink } from 'lucide-react'
+import { Users, User, CheckCircle, XCircle, FileText, X } from 'lucide-react'
+
+function detectDocType(url: string): 'image' | 'pdf' {
+  if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
+  if (url.includes('drive.google.com/file/d/')) return 'pdf'
+  return 'image'
+}
+
+function getPdfSrc(url: string): string {
+  if (url.startsWith('data:')) return url
+  if (url.includes('drive.google.com/file/d/')) return url.replace('/view', '/preview').replace(/\/preview.*$/, '/preview')
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+}
 
 interface InviteItem {
   id: string
@@ -32,6 +44,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   const [list, setList] = useState(items)
   const [loading, setLoading] = useState<string | null>(null)
   const [detail, setDetail] = useState<InviteItem | null>(null)
+  const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
     setLoading(id + action)
@@ -129,11 +142,11 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             {detail.fotoFiles && detail.fotoFiles.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
                 {detail.fotoFiles.map((url, i) => {
-                  const isImage = url.startsWith('data:image/') || url.includes('drive.google.com/uc') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+                  const type = detectDocType(url)
                   return (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)', textDecoration: 'none', position: 'relative' }}>
-                      {isImage ? (
+                    <button key={i} onClick={() => setDocModal({ url, type })}
+                      style={{ border: 'none', padding: 0, borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)', cursor: 'pointer', display: 'block', width: '100%' }}>
+                      {type === 'image' ? (
                         <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -141,10 +154,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
                           <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
                         </div>
                       )}
-                      <div style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,.4)', borderRadius: 6, padding: '2px 4px' }}>
-                        <ExternalLink size={10} color="white" />
-                      </div>
-                    </a>
+                    </button>
                   )
                 })}
               </div>
@@ -219,6 +229,28 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             })}
           </div>
         </>
+      )}
+
+      {docModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setDocModal(null)}
+        >
+          <button onClick={() => setDocModal(null)}
+            style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}>
+            <X size={18} />
+          </button>
+          {docModal.type === 'image' ? (
+            <img src={docModal.url} alt="Dokumen"
+              style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }}
+              onClick={e => e.stopPropagation()} />
+          ) : (
+            <div style={{ width: '90vw', height: '80vh', borderRadius: 12, overflow: 'hidden', background: 'white' }}
+              onClick={e => e.stopPropagation()}>
+              <iframe src={getPdfSrc(docModal.url)} style={{ width: '100%', height: '100%', border: 'none' }} title="Dokumen PDF" />
+            </div>
+          )}
+        </div>
       )}
     </>
   )

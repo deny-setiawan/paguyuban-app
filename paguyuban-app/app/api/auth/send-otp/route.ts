@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateOtp, saveOtp } from '@/lib/auth/otp'
 import { sendWhatsAppOtp } from '@/lib/wa-client'
 import { normalizePhone } from '@/lib/utils'
+import { db } from '@/lib/db'
+import { profiles } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+
+const ADMIN_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +16,12 @@ export async function POST(request: NextRequest) {
     const normalized = normalizePhone(phone)
     if (normalized.length < 10 || normalized.length > 15) {
       return NextResponse.json({ error: 'Format nomor HP tidak valid' }, { status: 400 })
+    }
+
+    // Admin bypass: jika nomor milik pengurus, skip OTP
+    const [profile] = await db.select({ role: profiles.role }).from(profiles).where(eq(profiles.phone, normalized)).limit(1)
+    if (profile && ADMIN_ROLES.includes(profile.role)) {
+      return NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
     }
 
     const otp = generateOtp()

@@ -3,13 +3,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { normalizePhone } from '@/lib/utils'
-import { Building2, Smartphone, AlertTriangle, Clock, Send } from 'lucide-react'
+import { Building2, AlertTriangle, Clock, Send, Lock, LogIn } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [adminMode, setAdminMode] = useState(false)
+  const [adminPhone, setAdminPhone] = useState('')
+  const [password, setPassword] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -27,6 +30,12 @@ export default function LoginPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Gagal mengirim OTP'); return }
 
+      if (data.adminBypass) {
+        setAdminPhone(data.phone)
+        setAdminMode(true)
+        return
+      }
+
       sessionStorage.setItem('otp_phone', data.phone)
       router.push('/otp')
     } catch {
@@ -34,6 +43,70 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleAdminLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!password) { setError('Sandi wajib diisi'); return }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: adminPhone, password }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Sandi salah'); return }
+
+      const role = data.role
+      const isAdmin = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin'].includes(role)
+      router.push(isAdmin ? '/pengurus' : '/')
+    } catch {
+      setError('Terjadi kesalahan jaringan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (adminMode) {
+    return (
+      <div className="auth-wrap">
+        <div className="auth-card">
+          <div className="auth-logo"><Lock size={36} color="var(--g600)" /></div>
+          <h1 className="auth-t">Masuk — Admin</h1>
+          <p className="auth-d">Masukkan sandi untuk melanjutkan</p>
+
+          <form onSubmit={handleAdminLogin}>
+            <label className="auth-label" htmlFor="password">Sandi</label>
+            <input
+              id="password"
+              type="password"
+              className="auth-input"
+              placeholder="Masukkan sandi"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoFocus
+            />
+            {error && (
+              <div className="ib red" style={{ marginTop: 10 }}>
+                <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} /><div>{error}</div>
+              </div>
+            )}
+            <button type="submit" className="btn-p" disabled={loading}>
+              {loading ? <><Clock size={16} /> Memverifikasi…</> : <><LogIn size={16} /> Masuk</>}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <button className="auth-link" onClick={() => { setAdminMode(false); setPassword(''); setError('') }}>
+              ← Kembali
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

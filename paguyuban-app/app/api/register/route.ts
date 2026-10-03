@@ -33,8 +33,11 @@ async function getGoogleToken(): Promise<string | null> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
   })
-  const data = await res.json() as { access_token?: string }
-  return data.access_token || null
+  const data = await res.json() as { access_token?: string; error?: string; error_description?: string }
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Google OAuth error: ${data.error_description || data.error || `HTTP ${res.status}`}`)
+  }
+  return data.access_token
 }
 
 async function uploadBase64ToDrive(dataUrl: string, token: string): Promise<string> {
@@ -67,13 +70,15 @@ async function uploadBase64ToDrive(dataUrl: string, token: string): Promise<stri
   return `https://drive.google.com/uc?export=view&id=${data.id}`
 }
 
-async function processPhotos(fotoFiles: string[]): Promise<string[]> {
+async function processPhotos(fotoFiles: string[]): Promise<{ urls: string[]; error: string | null }> {
   try {
     const token = await getGoogleToken()
-    if (!token) return fotoFiles
-    return await Promise.all(fotoFiles.map(f => uploadBase64ToDrive(f, token)))
-  } catch {
-    return fotoFiles // fallback: simpan base64
+    const urls = await Promise.all(fotoFiles.map(f => uploadBase64ToDrive(f, token)))
+    return { urls, error: null }
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e)
+    console.error('Google Drive upload error:', error)
+    return { urls: fotoFiles, error }
   }
 }
 
@@ -109,9 +114,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Upload foto ke Google Drive (jika dikonfigurasi), fallback ke base64
-    const finalFotos = fotoFiles && fotoFiles.length > 0
-      ? await processPhotos(fotoFiles)
-      : null
+    let finalFotos: string[] | null = null
+    let driveWarning: string | null = null
+    if (fotoFiles && fotoFiles.length > 0) {
+      const result = await processPhotos(fotoFiles)
+      finalFotos = result.urls
+      driveWarning = result.error
+    }
 
     const [invite] = await db.insert(wargaInvites).values({
       rtGroupId: rt.id, nama: nama.trim(), noRumah: noRumah || null,
@@ -120,7 +129,7 @@ export async function POST(req: NextRequest) {
       fotoFiles: finalFotos,
     }).returning()
 
-    return NextResponse.json({ ok: true, inviteId: invite.id, profileId })
+    return NextResponse.json({ ok: true, inviteId: invite.id, profileId, driveWarning })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('register error', msg)

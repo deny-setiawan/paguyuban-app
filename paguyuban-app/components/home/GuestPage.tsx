@@ -267,6 +267,7 @@ export default function GuestPage({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+      if (data.driveWarning) console.warn('[Drive]', data.driveWarning)
       setNbStep(99)
     } catch (e: unknown) {
       setNbMsg(e instanceof Error ? e.message : 'Gagal mengirim data')

@@ -133,12 +133,45 @@ export default function GuestPage({
     if (!fileList) return
     const added = Array.from(fileList)
     const combined = [...fotoFiles, ...added].slice(0, 10)
-    const invalid = Array.from(fileList).find(f => f.size > 5 * 1024 * 1024)
-    if (invalid) { setNbMsg(`File "${invalid.name}" melebihi 5 MB`); return }
-    fotoPreviews.forEach(p => URL.revokeObjectURL(p))
+    const invalid = Array.from(fileList).find(f => f.size > 10 * 1024 * 1024)
+    if (invalid) { setNbMsg(`File "${invalid.name}" melebihi 10 MB`); return }
+    fotoPreviews.forEach(p => { try { URL.revokeObjectURL(p) } catch {} })
     setFotoFiles(combined)
     setFotoPreviews(combined.map(f => f.type.startsWith('image/') ? URL.createObjectURL(f) : ''))
     setNbMsg('')
+  }
+
+  async function compressToBase64(file: File): Promise<string> {
+    if (!file.type.startsWith('image/')) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onerror = reject
+        reader.onload = () => resolve(reader.result as string)
+        reader.readAsDataURL(file)
+      })
+    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = reject
+      reader.onload = e => {
+        const img = new window.Image()
+        img.onerror = reject
+        img.onload = () => {
+          const MAX = 1200
+          let { width, height } = img
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+            else { width = Math.round(width * MAX / height); height = MAX }
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width; canvas.height = height
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', 0.75))
+        }
+        img.src = e.target!.result as string
+      }
+      reader.readAsDataURL(file)
+    })
   }
   function removeFile(i: number) {
     if (fotoFiles[i].type.startsWith('image/')) URL.revokeObjectURL(fotoPreviews[i])
@@ -215,13 +248,9 @@ export default function GuestPage({
       let fotoUrls: string[] = []
       if (fotoFiles.length > 0) {
         try {
-          const fd = new FormData()
-          fotoFiles.forEach(f => fd.append('files', f))
-          const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
-          const uploadData = await uploadRes.json()
-          if (uploadRes.ok && uploadData.urls) fotoUrls = uploadData.urls
+          fotoUrls = await Promise.all(fotoFiles.map(compressToBase64))
         } catch {
-          // Upload failed — proceed without photos
+          // Failed to process — proceed without photos
         }
       }
       const res = await fetch('/api/register', {

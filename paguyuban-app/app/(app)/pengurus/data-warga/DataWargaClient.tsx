@@ -191,21 +191,25 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
             </div>
 
             {/* Foto dokumen */}
-            {detail.fotoFiles && detail.fotoFiles.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Image size={13} /> Foto Dokumen ({detail.fotoFiles.length})
-                </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Image size={13} /> Foto Dokumen
+              </div>
+              {detail.fotoFiles && detail.fotoFiles.length > 0 ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {detail.fotoFiles.map((url, i) => (
                     <button key={i} onClick={() => setFotoModal(url)}
-                      style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', width: 80, height: 80, padding: 0, cursor: 'pointer', background: 'none' }}>
+                      style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', width: 80, height: 80, padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
                       <img src={url} alt={`Foto ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 12 }}>
+                  Tidak ada foto/dokumen terlampir
+                </div>
+              )}
+            </div>
 
             {/* Editable fields — only for warga records */}
             {detail.source === 'warga' && (

@@ -2,8 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, rtGroups, warga } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { profiles, rtGroups, warga, wargaInvites } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 import ProfilClient from './ProfilClient'
 
 export default async function ProfilPage() {
@@ -24,6 +24,14 @@ export default async function ProfilPage() {
   }
 
   const [wargaData] = await db.select().from(warga).where(eq(warga.profileId, profile.id)).limit(1)
+
+  // Get foto from latest wargaInvite for this profile
+  const [latestInvite] = await db.select({ fotoFiles: wargaInvites.fotoFiles })
+    .from(wargaInvites)
+    .where(eq(wargaInvites.profileId, profile.id))
+    .orderBy(desc(wargaInvites.createdAt))
+    .limit(1)
+  const fotoFiles = Array.isArray(latestInvite?.fotoFiles) ? (latestInvite.fotoFiles as string[]) : []
 
   return (
     <ProfilClient
@@ -52,6 +60,7 @@ export default async function ProfilPage() {
         alamatLengkap: wargaData.alamatLengkap,
       } : null}
       rtName={rt?.namaRt || 'Paguyuban PKR-Pepe'}
+      fotoFiles={fotoFiles}
     />
   )
 }

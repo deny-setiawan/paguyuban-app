@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, urls })
   } catch (e) {
-    console.error('upload error', e)
-    return NextResponse.json({ error: 'Gagal mengupload file. Pastikan BLOB_READ_WRITE_TOKEN sudah dikonfigurasi.' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('upload error', msg)
+    return NextResponse.json({ error: `Gagal upload: ${msg}` }, { status: 500 })
   }
 }

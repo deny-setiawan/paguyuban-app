@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, User, ClipboardList, Save, LogOut, Pencil } from 'lucide-react'
+import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X } from 'lucide-react'
 
 interface ProfileData {
   id: string
@@ -34,15 +34,20 @@ interface Props {
   profile: ProfileData
   warga: WargaData | null
   rtName: string
+  fotoFiles: string[]
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  warga: 'Warga', ketua: 'Ketua RT', sekretaris: 'Sekretaris', bendahara: 'Bendahara', admin: 'Admin', tamu: 'Tamu',
+  warga: 'Warga', tamu: 'Tamu',
+  ketua: 'Ketua RT', wakil_ketua: 'Wakil Ketua', sekretaris: 'Sekretaris',
+  bendahara: 'Bendahara', humas: 'Humas', lingkungan: 'Seksi Lingkungan',
+  keamanan: 'Seksi Keamanan', peralatan: 'Seksi Peralatan', admin: 'Admin',
 }
 
-export default function ProfilClient({ profile, warga, rtName }: Props) {
+export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [fotoModal, setFotoModal] = useState<string | null>(null)
   const [form, setForm] = useState({
     fullName: profile.fullName || '',
     noRumah: profile.noRumah || '',
@@ -164,6 +169,47 @@ export default function ProfilClient({ profile, warga, rtName }: Props) {
             <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Jumlah jiwa</span><span className="v">{warga.jumlahJiwa ?? '—'}</span></div>
           </div>
         </>
+      )}
+
+      {/* Foto Dokumen Pendaftaran */}
+      <div className="sec-h" style={{ margin: '20px 0 12px' }}>
+        <div className="t"><Image size={16} /> Dokumen Pendaftaran</div>
+      </div>
+      {fotoFiles.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
+          {fotoFiles.map((url, i) => {
+            const isImg = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+            return (
+              <button key={i} onClick={() => setFotoModal(url)}
+                style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
+                {isImg
+                  ? <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <FileText size={24} color="var(--gray400)" />
+                      <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
+                    </div>
+                }
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13, marginBottom: 4 }}>
+          <FileText size={16} color="var(--gray400)" />
+          Belum ada foto/dokumen terlampir
+        </div>
+      )}
+
+      {/* Foto lightbox */}
+      {fotoModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setFotoModal(null)}>
+          <button onClick={() => setFotoModal(null)}
+            style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={18} />
+          </button>
+          <img src={fotoModal} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} />
+        </div>
       )}
 
       {/* Logout */}

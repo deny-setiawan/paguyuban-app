@@ -123,33 +123,36 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             )}
 
             {/* Foto Dokumen */}
-            {detail.fotoFiles && detail.fotoFiles.length > 0 && (
-              <>
-                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginTop: 8, marginBottom: 8, letterSpacing: 0.5 }}>
-                  DOKUMEN LAMPIRAN ({detail.fotoFiles.length} file)
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
-                  {detail.fotoFiles.map((url, i) => {
-                    const isImage = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
-                    return (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)', textDecoration: 'none', position: 'relative' }}>
-                        {isImage ? (
-                          <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                            <FileText size={24} color="var(--gray400)" />
-                            <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
-                          </div>
-                        )}
-                        <div style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,.4)', borderRadius: 6, padding: '2px 4px' }}>
-                          <ExternalLink size={10} color="white" />
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginTop: 8, marginBottom: 8, letterSpacing: 0.5 }}>
+              DOKUMEN LAMPIRAN
+            </div>
+            {detail.fotoFiles && detail.fotoFiles.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                {detail.fotoFiles.map((url, i) => {
+                  const isImage = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+                  return (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)', textDecoration: 'none', position: 'relative' }}>
+                      {isImage ? (
+                        <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <FileText size={24} color="var(--gray400)" />
+                          <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
                         </div>
-                      </a>
-                    )
-                  })}
-                </div>
-              </>
+                      )}
+                      <div style={{ position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,.4)', borderRadius: 6, padding: '2px 4px' }}>
+                        <ExternalLink size={10} color="white" />
+                      </div>
+                    </a>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13 }}>
+                <FileText size={16} color="var(--gray400)" />
+                Tidak ada foto/dokumen terlampir
+              </div>
             )}
 
             {canApprove && detail.status === 'pending' && (

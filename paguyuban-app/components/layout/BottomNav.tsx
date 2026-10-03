@@ -12,7 +12,7 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { path: '/', icon: <Home size={21} />, label: 'Beranda' },
+  { path: '/beranda', icon: <Home size={21} />, label: 'Beranda' },
   { path: '/iuran', icon: <CreditCard size={21} />, label: 'Iuran' },
   { path: null, icon: null, fabIcon: <Megaphone size={23} />, label: 'Lapor', fab: true },
   { path: '/pengumuman', icon: <Bell size={21} />, label: 'Info' },
@@ -38,7 +38,7 @@ export default function BottomNav({ onLapor }: BottomNavProps) {
             </div>
           )
         }
-        const isOn = tab.path === '/' ? pathname === '/' : pathname.startsWith(tab.path!)
+        const isOn = pathname.startsWith(tab.path!)
         return (
           <div
             key={tab.path}

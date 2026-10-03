@@ -4,38 +4,97 @@ import { NextRequest, NextResponse } from 'next/server'
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const MAX_FILES = 10
 
-function getCloudinaryConfig() {
-  const url = process.env.CLOUDINARY_URL
-  if (!url) throw new Error('CLOUDINARY_URL tidak dikonfigurasi')
-  const match = url.match(/^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/)
-  if (!match) throw new Error('Format CLOUDINARY_URL tidak valid')
-  return { apiKey: match[1], apiSecret: match[2], cloudName: match[3] }
+function toBase64Url(buf: Buffer): string {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-async function uploadFile(file: File): Promise<string> {
-  const { apiKey, apiSecret, cloudName } = getCloudinaryConfig()
-  const timestamp = Math.round(Date.now() / 1000).toString()
-  const folder = 'paguyuban'
+async function getAccessToken(): Promise<string> {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+  if (!email || !rawKey) throw new Error('Konfigurasi Google Service Account belum diatur')
 
-  const signature = crypto
-    .createHash('sha256')
-    .update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`)
-    .digest('hex')
+  const privateKey = rawKey.replace(/\\n/g, '\n')
+  const iat = Math.floor(Date.now() / 1000)
+  const exp = iat + 3600
 
-  const fd = new FormData()
-  fd.append('file', file)
-  fd.append('api_key', apiKey)
-  fd.append('timestamp', timestamp)
-  fd.append('signature', signature)
-  fd.append('folder', folder)
+  const header = toBase64Url(Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })))
+  const claims = toBase64Url(Buffer.from(JSON.stringify({
+    iss: email,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp,
+    iat,
+  })))
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+  const signer = crypto.createSign('RSA-SHA256')
+  signer.update(`${header}.${claims}`)
+  const signature = toBase64Url(Buffer.from(signer.sign(privateKey, 'base64'), 'base64'))
+  const jwt = `${header}.${claims}.${signature}`
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    body: fd,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
   })
-  const data = await res.json() as { secure_url?: string; error?: { message: string } }
-  if (!res.ok) throw new Error(data.error?.message || 'Upload ke Cloudinary gagal')
-  return data.secure_url!
+  const data = await res.json() as { access_token?: string; error_description?: string }
+  if (!res.ok) throw new Error(data.error_description || 'Gagal autentikasi Google')
+  return data.access_token!
+}
+
+async function uploadToDrive(file: File, accessToken: string): Promise<string> {
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+  if (!folderId) throw new Error('GOOGLE_DRIVE_FOLDER_ID belum diatur')
+
+  const fileBuffer = Buffer.from(await file.arrayBuffer())
+  const boundary = 'boundary_' + Date.now()
+  const meta = JSON.stringify({
+    name: `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
+    parents: [folderId],
+  })
+
+  const body = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    meta,
+    `--${boundary}`,
+    `Content-Type: ${file.type || 'application/octet-stream'}`,
+    'Content-Transfer-Encoding: base64',
+    '',
+    fileBuffer.toString('base64'),
+    `--${boundary}--`,
+  ].join('\r\n')
+
+  const uploadRes = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': `multipart/related; boundary="${boundary}"`,
+      },
+      body,
+    }
+  )
+  const uploadData = await uploadRes.json() as { id?: string; error?: { message: string } }
+  if (!uploadRes.ok) throw new Error(uploadData.error?.message || 'Upload ke Google Drive gagal')
+
+  const fileId = uploadData.id!
+
+  // Buat file bisa diakses publik
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  })
+
+  // URL langsung untuk gambar, link viewer untuk file lain
+  return file.type.startsWith('image/')
+    ? `https://drive.google.com/uc?export=view&id=${fileId}`
+    : `https://drive.google.com/file/d/${fileId}/view`
 }
 
 export async function POST(req: NextRequest) {
@@ -51,7 +110,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const urls = await Promise.all(files.map(uploadFile))
+    const accessToken = await getAccessToken()
+    const urls = await Promise.all(files.map(f => uploadToDrive(f, accessToken)))
     return NextResponse.json({ ok: true, urls })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

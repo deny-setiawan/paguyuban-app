@@ -178,7 +178,7 @@ export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Prop
       {fotoFiles.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
           {fotoFiles.map((url, i) => {
-            const isImg = url.startsWith('data:image/') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+            const isImg = url.startsWith('data:image/') || url.includes('drive.google.com/uc') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
             return (
               <button key={i} onClick={() => setFotoModal(url)}
                 style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>

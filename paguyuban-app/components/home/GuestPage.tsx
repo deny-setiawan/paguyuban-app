@@ -215,30 +215,17 @@ export default function GuestPage({
     try {
       let fotoUrls: string[] = []
       if (fotoFiles.length > 0) {
-        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
-        if (!cloudName || !uploadPreset) {
-          setNbMsg('Konfigurasi upload foto belum diatur. Hubungi admin.')
+        const fd = new FormData()
+        fotoFiles.forEach(f => fd.append('files', f))
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        let uploadData: { urls?: string[]; error?: string } = {}
+        try { uploadData = await uploadRes.json() } catch { /* non-JSON response */ }
+        if (!uploadRes.ok || !uploadData.urls) {
+          setNbMsg(uploadData.error || `Gagal upload foto (HTTP ${uploadRes.status}). Silakan coba lagi.`)
           setNbLoading(false)
           return
         }
-        try {
-          fotoUrls = await Promise.all(fotoFiles.map(async (file) => {
-            const fd = new FormData()
-            fd.append('file', file)
-            fd.append('upload_preset', uploadPreset)
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
-              method: 'POST', body: fd,
-            })
-            const data = await res.json() as { secure_url?: string; error?: { message: string } }
-            if (!res.ok) throw new Error(data.error?.message || 'Upload gagal')
-            return data.secure_url!
-          }))
-        } catch (e) {
-          setNbMsg(`Gagal upload foto: ${e instanceof Error ? e.message : 'Error tidak diketahui'}. Silakan coba lagi.`)
-          setNbLoading(false)
-          return
-        }
+        fotoUrls = uploadData.urls
       }
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

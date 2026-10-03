@@ -129,7 +129,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             {detail.fotoFiles && detail.fotoFiles.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
                 {detail.fotoFiles.map((url, i) => {
-                  const isImage = url.startsWith('data:image/') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+                  const isImage = url.startsWith('data:image/') || url.includes('drive.google.com/uc') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
                   return (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                       style={{ display: 'block', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)', textDecoration: 'none', position: 'relative' }}>

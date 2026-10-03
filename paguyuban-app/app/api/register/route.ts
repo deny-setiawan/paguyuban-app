@@ -61,7 +61,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, inviteId: invite.id, profileId })
   } catch (e) {
-    console.error('register error', e)
-    return NextResponse.json({ error: 'Gagal mendaftarkan data' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('register error', msg)
+    return NextResponse.json({ error: `Gagal mendaftarkan data: ${msg}` }, { status: 500 })
   }
 }

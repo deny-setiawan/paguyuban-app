@@ -142,33 +142,36 @@ export default function GuestPage({
   }
 
   async function compressToBase64(file: File): Promise<string> {
-    if (!file.type.startsWith('image/')) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onerror = reject
-        reader.onload = () => resolve(reader.result as string)
-        reader.readAsDataURL(file)
-      })
-    }
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onerror = reject
+      reader.onerror = () => reject(new Error(`Gagal membaca file: ${file.name}`))
       reader.onload = e => {
-        const img = new window.Image()
-        img.onerror = reject
-        img.onload = () => {
-          const MAX = 1200
-          let { width, height } = img
-          if (width > MAX || height > MAX) {
-            if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-            else { width = Math.round(width * MAX / height); height = MAX }
-          }
-          const canvas = document.createElement('canvas')
-          canvas.width = width; canvas.height = height
-          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-          resolve(canvas.toDataURL('image/jpeg', 0.75))
+        const dataUrl = e.target!.result as string
+        if (!file.type.startsWith('image/')) {
+          resolve(dataUrl)
+          return
         }
-        img.src = e.target!.result as string
+        const img = new window.Image()
+        img.onerror = () => reject(new Error(`Gagal memuat gambar: ${file.name}`))
+        img.onload = () => {
+          try {
+            const MAX = 1200
+            let { width, height } = img
+            if (width > MAX || height > MAX) {
+              if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+              else { width = Math.round(width * MAX / height); height = MAX }
+            }
+            const canvas = document.createElement('canvas')
+            canvas.width = width; canvas.height = height
+            const ctx = canvas.getContext('2d')
+            if (!ctx) { resolve(dataUrl); return }
+            ctx.drawImage(img, 0, 0, width, height)
+            resolve(canvas.toDataURL('image/jpeg', 0.75))
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(`Gagal kompres: ${file.name}`))
+          }
+        }
+        img.src = dataUrl
       }
       reader.readAsDataURL(file)
     })
@@ -249,8 +252,11 @@ export default function GuestPage({
       if (fotoFiles.length > 0) {
         try {
           fotoUrls = await Promise.all(fotoFiles.map(compressToBase64))
-        } catch {
-          // Failed to process — proceed without photos
+        } catch (e) {
+          const errMsg = e instanceof Error ? e.message : 'Error tidak diketahui'
+          setNbMsg(`Gagal memproses foto: ${errMsg}. Silakan coba lagi atau hapus foto dan submit tanpa foto.`)
+          setNbLoading(false)
+          return
         }
       }
       const res = await fetch('/api/register', {

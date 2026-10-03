@@ -141,6 +141,39 @@ export default function GuestPage({
     setNbMsg('')
   }
 
+  async function compressToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error(`Gagal membaca file: ${file.name}`))
+      reader.onload = e => {
+        const dataUrl = e.target!.result as string
+        if (!file.type.startsWith('image/')) { resolve(dataUrl); return }
+        const img = new window.Image()
+        img.onerror = () => reject(new Error(`Gagal memuat gambar: ${file.name}`))
+        img.onload = () => {
+          try {
+            const MAX = 1200
+            let { width, height } = img
+            if (width > MAX || height > MAX) {
+              if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+              else { width = Math.round(width * MAX / height); height = MAX }
+            }
+            const canvas = document.createElement('canvas')
+            canvas.width = width; canvas.height = height
+            const ctx = canvas.getContext('2d')
+            if (!ctx) { resolve(dataUrl); return }
+            ctx.drawImage(img, 0, 0, width, height)
+            resolve(canvas.toDataURL('image/jpeg', 0.75))
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(`Gagal kompres: ${file.name}`))
+          }
+        }
+        img.src = dataUrl
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
   function removeFile(i: number) {
     if (fotoFiles[i].type.startsWith('image/')) URL.revokeObjectURL(fotoPreviews[i])
     setFotoFiles(prev => prev.filter((_, idx) => idx !== i))
@@ -215,17 +248,13 @@ export default function GuestPage({
     try {
       let fotoUrls: string[] = []
       if (fotoFiles.length > 0) {
-        const fd = new FormData()
-        fotoFiles.forEach(f => fd.append('files', f))
-        const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd })
-        let uploadData: { urls?: string[]; error?: string } = {}
-        try { uploadData = await uploadRes.json() } catch { /* non-JSON response */ }
-        if (!uploadRes.ok || !uploadData.urls) {
-          setNbMsg(uploadData.error || `Gagal upload foto (HTTP ${uploadRes.status}). Silakan coba lagi.`)
+        try {
+          fotoUrls = await Promise.all(fotoFiles.map(compressToBase64))
+        } catch (e) {
+          setNbMsg(`Gagal memproses foto: ${e instanceof Error ? e.message : 'Error'}. Silakan coba lagi.`)
           setNbLoading(false)
           return
         }
-        fotoUrls = uploadData.urls
       }
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

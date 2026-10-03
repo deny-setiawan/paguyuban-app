@@ -11,7 +11,7 @@ function toB64Url(buf: Buffer) {
   return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-async function getGoogleToken(): Promise<string | null> {
+async function getGoogleToken(): Promise<string> {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
   if (!email || !rawKey) throw new Error('Google Service Account belum dikonfigurasi di env vars')

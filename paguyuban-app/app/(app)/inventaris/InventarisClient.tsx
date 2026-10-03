@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { rupiah } from '@/lib/utils'
-import { Package, CheckCircle } from 'lucide-react'
+import { Package, CheckCircle, Clock, RotateCcw, Calendar } from 'lucide-react'
 
 interface Item {
   id: string
@@ -14,13 +14,27 @@ interface Item {
   deskripsi: string | null
 }
 
+interface SewaItem {
+  id: string
+  inventarisId: string
+  inventarisNama: string | null
+  tglSewa: string
+  tglKembaliRencana: string | null
+  jumlah: number | null
+  hargaSatuan: number | null
+  total: number | null
+}
+
 interface Props {
   items: Item[]
+  activeSewa: SewaItem[]
+  profileId: string
   profileName: string | null
   profilePhone: string | null
 }
 
-export default function InventarisClient({ items, profileName, profilePhone }: Props) {
+export default function InventarisClient({ items, activeSewa: initialSewa, profileName, profilePhone }: Props) {
+  const [tab, setTab] = useState<'daftar' | 'aktif'>('daftar')
   const [sewaItem, setSewaItem] = useState<Item | null>(null)
   const [sewaNama, setSewaNama] = useState(profileName || '')
   const [sewaHp, setSewaHp] = useState(profilePhone || '')
@@ -30,6 +44,11 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
   const [msg, setMsg] = useState('')
   const [done, setDone] = useState(false)
   const [localItems, setLocalItems] = useState(items)
+  const [activeSewa, setActiveSewa] = useState(initialSewa)
+  const [ubahTglTarget, setUbahTglTarget] = useState<SewaItem | null>(null)
+  const [newTglKembali, setNewTglKembali] = useState('')
+  const [ubahLoading, setUbahLoading] = useState(false)
+  const [kembalikanLoading, setKembalikanLoading] = useState<string | null>(null)
 
   function openSewa(item: Item) {
     setSewaItem(item); setSewaNama(profileName || ''); setSewaHp(profilePhone || '')
@@ -54,15 +73,49 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
       if (!res.ok) throw new Error(data.error)
       setDone(true)
       setLocalItems(prev => prev.map(i => i.id === sewaItem.id ? { ...i, stok: (i.stok || 1) - 1 } : i))
+      // Reload page to get updated activeSewa
+      window.location.reload()
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Gagal memproses sewa')
     } finally { setLoading(false) }
   }
 
+  async function kembalikan(sewaId: string, inventarisId: string) {
+    setKembalikanLoading(sewaId)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const res = await fetch(`/api/inventaris-sewa/${sewaId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'kembalikan', tglKembali: today, inventarisId }),
+      })
+      if (res.ok) {
+        setActiveSewa(prev => prev.filter(s => s.id !== sewaId))
+        setLocalItems(prev => prev.map(i => i.id === inventarisId ? { ...i, stok: (i.stok || 0) + 1 } : i))
+      }
+    } catch {}
+    setKembalikanLoading(null)
+  }
+
+  async function ubahTanggal() {
+    if (!ubahTglTarget || !newTglKembali) return
+    setUbahLoading(true)
+    try {
+      const res = await fetch(`/api/inventaris-sewa/${ubahTglTarget.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ubah_tanggal', tglKembaliRencana: newTglKembali }),
+      })
+      if (res.ok) {
+        setActiveSewa(prev => prev.map(s => s.id === ubahTglTarget.id ? { ...s, tglKembaliRencana: newTglKembali } : s))
+        setUbahTglTarget(null)
+      }
+    } catch {}
+    setUbahLoading(false)
+  }
+
   return (
     <>
+      {/* Sewa sheet */}
       {sewaItem && <div className="sheet-mask show" onClick={() => setSewaItem(null)} />}
-
       <div className={`sheet${sewaItem ? ' show' : ''}`}>
         <div className="sheet-grip" />
         {done ? (
@@ -77,7 +130,7 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
         ) : sewaItem && (
           <>
             <div className="sheet-h" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Package size={18} /> Pinjam: {sewaItem.nama}
+              <Package size={18} /> Sewa: {sewaItem.nama}
             </div>
             <div style={{ background: 'var(--gray50)', borderRadius: 12, padding: '10px 4px', marginBottom: 14 }}>
               <div className="kv"><span className="k">Harga sewa</span><span className="v">{sewaItem.hargaSewa ? rupiah(sewaItem.hargaSewa) + '/hari' : 'Gratis'}</span></div>
@@ -100,43 +153,128 @@ export default function InventarisClient({ items, profileName, profilePhone }: P
         )}
       </div>
 
-      {localItems.length === 0 ? (
-        <div className="empty">
-          <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Package size={38} color="var(--gray400)" /></div>
-          <div className="e-t">Belum ada inventaris</div>
-          <div className="e-d">Data barang inventaris RT belum tersedia.</div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {localItems.map(item => (
-            <div key={item.id} className="iv-card">
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Package size={26} color="var(--gold)" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--gray800)' }}>{item.nama}</div>
-                  {item.deskripsi && <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>{item.deskripsi}</div>}
-                  <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: 'var(--gray500)' }}>
-                    <span>Stok: <b>{item.stok ?? 0}</b>/{item.stokTotal ?? 0}</span>
-                    <span>{item.hargaSewa ? rupiah(item.hargaSewa) + '/hari' : 'Gratis'}</span>
-                  </div>
-                </div>
-              </div>
-              <div style={{ marginTop: 12 }}>
-                {(item.stok || 0) > 0 ? (
-                  <button className="btn-p" style={{ height: 40 }} onClick={() => openSewa(item)}>
-                    <Package size={14} /> Pinjam / Sewa
-                  </button>
-                ) : (
-                  <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gray100)', borderRadius: 12, fontSize: 13, fontWeight: 700, color: 'var(--gray400)' }}>
-                    Stok habis
-                  </div>
-                )}
-              </div>
+      {/* Ubah tanggal kembali modal */}
+      {ubahTglTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}
+          onClick={() => !ubahLoading && setUbahTglTarget(null)}>
+          <div style={{ background: 'white', borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 360 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Ubah Tanggal Kembali</div>
+            <div style={{ fontSize: 13, color: 'var(--gray600)', marginBottom: 12 }}>
+              Barang: <b>{ubahTglTarget.inventarisNama}</b>
             </div>
-          ))}
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 6 }}>Tanggal Kembali Baru</label>
+            <input className="rl-in" type="date" value={newTglKembali} onChange={e => setNewTglKembali(e.target.value)} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button className="rl-b" style={{ flex: 1, height: 44 }} onClick={() => setUbahTglTarget(null)} disabled={ubahLoading}>Batal</button>
+              <button className="btn-p" style={{ flex: 2, height: 44 }} onClick={ubahTanggal} disabled={ubahLoading || !newTglKembali}>
+                {ubahLoading ? 'Menyimpan…' : 'Simpan'}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {([['daftar', 'Daftar Inventaris'], ['aktif', `Sewa Aktif Saya${activeSewa.length > 0 ? ` (${activeSewa.length})` : ''}`]] as const).map(([t, lbl]) => (
+          <button key={t} onClick={() => setTab(t)}
+            style={{ flex: 1, height: 38, borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12,
+              background: tab === t ? 'var(--g600)' : 'var(--gray100)', color: tab === t ? 'white' : 'var(--gray600)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            {t === 'aktif' && activeSewa.length > 0 && tab !== t && (
+              <span style={{ background: 'var(--red)', color: 'white', borderRadius: 20, fontSize: 10, fontWeight: 800, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{activeSewa.length}</span>
+            )}
+            {lbl}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab: Daftar Inventaris */}
+      {tab === 'daftar' && (
+        localItems.length === 0 ? (
+          <div className="empty">
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Package size={38} color="var(--gray400)" /></div>
+            <div className="e-t">Belum ada inventaris</div>
+            <div className="e-d">Data barang inventaris RT belum tersedia.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {localItems.map(item => (
+              <div key={item.id} className="iv-card">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 12, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Package size={26} color="var(--gold)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--gray800)' }}>{item.nama}</div>
+                    {item.deskripsi && <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>{item.deskripsi}</div>}
+                    <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: 'var(--gray500)' }}>
+                      <span>Stok: <b>{item.stok ?? 0}</b>/{item.stokTotal ?? 0}</span>
+                      <span>{item.hargaSewa ? rupiah(item.hargaSewa) + '/hari' : 'Gratis'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                  {(item.stok || 0) > 0 ? (
+                    <button className="btn-p" style={{ flex: 2, height: 38 }} onClick={() => openSewa(item)}>
+                      <Package size={14} /> Sewa
+                    </button>
+                  ) : (
+                    <div style={{ flex: 2, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gray100)', borderRadius: 12, fontSize: 13, fontWeight: 700, color: 'var(--gray400)' }}>
+                      Stok habis
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Tab: Sewa Aktif */}
+      {tab === 'aktif' && (
+        activeSewa.length === 0 ? (
+          <div className="empty">
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><Clock size={38} color="var(--gray400)" /></div>
+            <div className="e-t">Tidak ada sewa aktif</div>
+            <div className="e-d">Barang yang sedang Anda sewa akan muncul di sini.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {activeSewa.map(s => (
+              <div key={s.id} className="iv-card">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Package size={22} color="var(--gold)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--gray800)' }}>{s.inventarisNama || '—'}</div>
+                    <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>
+                      Mulai: <b>{s.tglSewa}</b>
+                    </div>
+                    <div style={{ fontSize: 12, color: s.tglKembaliRencana ? 'var(--gray500)' : 'var(--orange)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={11} />
+                      {s.tglKembaliRencana ? <>Kembali: <b>{s.tglKembaliRencana}</b></> : 'Belum ada rencana kembali'}
+                    </div>
+                    {s.total ? <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Total: {rupiah(s.total)}</div> : null}
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                  <button className="btn-ghost" style={{ flex: 1, height: 36, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                    onClick={() => { setUbahTglTarget(s); setNewTglKembali(s.tglKembaliRencana || '') }}>
+                    <Calendar size={13} /> Ubah Tgl Kembali
+                  </button>
+                  <button
+                    style={{ flex: 1, height: 36, background: 'var(--g50)', color: 'var(--g700)', border: '1.5px solid var(--g200)', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                    disabled={kembalikanLoading === s.id}
+                    onClick={() => kembalikan(s.id, s.inventarisId)}>
+                    <RotateCcw size={13} /> {kembalikanLoading === s.id ? '…' : 'Dikembalikan'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </>
   )

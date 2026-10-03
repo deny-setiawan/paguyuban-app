@@ -2,13 +2,13 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, rtGroups, pengumuman, iuranInvoices, transaksi } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { profiles, rtGroups, pengumuman, iuranInvoices, transaksi, surat, laporanWarga, inventaris } from '@/lib/db/schema'
+import { eq, and, desc, count, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { rupiah, timeAgo } from '@/lib/utils'
 import {
   CreditCard, Wallet, Zap, Megaphone, AlertTriangle, Calendar,
-  Clock, Users, Mail, Car, Package, FileText, Inbox, Banknote,
+  Clock, Users, Mail, Car, Package, FileText, Inbox, Banknote, BarChart2,
 } from 'lucide-react'
 
 const PENGURUS_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
@@ -34,8 +34,11 @@ export default async function BerandaPage() {
   let pengumumanList: (typeof pengumuman.$inferSelect)[] = []
   let invoiceList: (typeof iuranInvoices.$inferSelect)[] = []
   let saldoKas: number | null = null
+  let jumlahInventaris = 0
+  let suratCount = 0
+  let laporanCount = 0
   try {
-    const [pList, iList, lastTransRes] = await Promise.all([
+    const [pList, iList, lastTransRes, invCount, suratRes, laporanRes] = await Promise.all([
       db.select().from(pengumuman)
         .where(and(eq(pengumuman.rtGroupId, profile.rtGroupId!), eq(pengumuman.isPublished, true)))
         .orderBy(desc(pengumuman.createdAt)).limit(3),
@@ -45,10 +48,19 @@ export default async function BerandaPage() {
       db.select().from(transaksi)
         .where(eq(transaksi.rtGroupId, profile.rtGroupId!))
         .orderBy(desc(transaksi.createdAt)).limit(1),
+      db.select({ c: count() }).from(inventaris)
+        .where(eq(inventaris.rtGroupId, profile.rtGroupId!)),
+      db.select({ c: count() }).from(surat)
+        .where(and(eq(surat.pemohonId, profile.id), inArray(surat.status, ['diajukan', 'diproses']))),
+      db.select({ c: count() }).from(laporanWarga)
+        .where(and(eq(laporanWarga.pelaporId, profile.id), inArray(laporanWarga.status, ['menunggu', 'diproses']))),
     ])
     pengumumanList = pList
     invoiceList = iList
     saldoKas = lastTransRes[0]?.saldoSetelah ?? null
+    jumlahInventaris = Number(invCount[0]?.c ?? 0)
+    suratCount = Number(suratRes[0]?.c ?? 0)
+    laporanCount = Number(laporanRes[0]?.c ?? 0)
   } catch {
     // Tables not yet migrated — degrade gracefully
   }
@@ -56,13 +68,13 @@ export default async function BerandaPage() {
   const totalTagihan = invoiceList.reduce((s, i) => s + (i.nominal || 0), 0)
 
   const menuItems = [
-    { href: '/iuran', icon: <CreditCard size={22} color="var(--g600)" />, bg: 'var(--g50)', lbl: 'Iuran' },
-    { href: '/pengumuman', icon: <Megaphone size={22} color="var(--orange)" />, bg: 'var(--orange-l)', lbl: 'Pengumuman' },
-    { href: '/keluarga', icon: <Users size={22} color="var(--blue)" />, bg: 'var(--blue-l)', lbl: 'Keluarga' },
-    { href: '/laporan', icon: <FileText size={22} color="var(--purple)" />, bg: 'var(--purple-l)', lbl: 'Layanan' },
-    { href: '/surat', icon: <Mail size={22} color="var(--teal)" />, bg: 'var(--teal-l)', lbl: 'Surat' },
-    { href: '/kendaraan', icon: <Car size={22} color="var(--gray500)" />, bg: 'var(--gray100)', lbl: 'Kendaraan' },
-    { href: '/inventaris', icon: <Package size={22} color="var(--gold)" />, bg: 'var(--gold-l)', lbl: 'Inventaris' },
+    { href: '/iuran', icon: <CreditCard size={22} color="var(--g600)" />, bg: 'var(--g50)', lbl: 'Iuran', count: 0 },
+    { href: '/pengumuman', icon: <Megaphone size={22} color="var(--orange)" />, bg: 'var(--orange-l)', lbl: 'Pengumuman', count: 0 },
+    { href: '/keluarga', icon: <Users size={22} color="var(--blue)" />, bg: 'var(--blue-l)', lbl: 'Keluarga', count: 0 },
+    { href: '/laporan', icon: <FileText size={22} color="var(--purple)" />, bg: 'var(--purple-l)', lbl: 'Layanan', count: laporanCount },
+    { href: '/surat', icon: <Mail size={22} color="var(--teal)" />, bg: 'var(--teal-l)', lbl: 'Surat', count: suratCount },
+    { href: '/kendaraan', icon: <Car size={22} color="var(--gray500)" />, bg: 'var(--gray100)', lbl: 'Kendaraan', count: 0 },
+    { href: '/inventaris', icon: <Package size={22} color="var(--gold)" />, bg: 'var(--gold-l)', lbl: 'Inventaris', count: 0 },
   ]
 
   return (
@@ -106,23 +118,27 @@ export default async function BerandaPage() {
         )}
       </div>
 
-      {saldoKas !== null && (
-        <div>
-          <div className="sec-h" style={{ marginBottom: 10 }}>
-            <div className="t"><Wallet size={16} /> Kas RT</div>
+      <div>
+        <div className="sec-h" style={{ marginBottom: 10 }}>
+          <div className="t"><BarChart2 size={16} /> Ringkasan RT</div>
+        </div>
+        <div className="rl-st">
+          <div>
+            <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--g700)' }}>
+              {saldoKas !== null ? rupiah(saldoKas) : '—'}
+            </b>
+            <span>Saldo kas</span>
           </div>
-          <div className="rl-st">
-            <div>
-              <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--g700)' }}>{rupiah(saldoKas)}</b>
-              <span>Saldo kas</span>
-            </div>
-            <div>
-              <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--gray700)' }}>{rt?.jumlahKk ?? '—'}</b>
-              <span>Jumlah KK</span>
-            </div>
+          <div>
+            <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--gray700)' }}>{jumlahInventaris}</b>
+            <span>Inventaris</span>
+          </div>
+          <div>
+            <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--gray700)' }}>{rt?.jumlahKk ?? '—'}</b>
+            <span>Jumlah KK</span>
           </div>
         </div>
-      )}
+      </div>
 
       <div>
         <div className="sec-h" style={{ marginBottom: 12 }}>
@@ -131,9 +147,14 @@ export default async function BerandaPage() {
         <div className="menu-grid">
           {menuItems.map(m => (
             <Link key={m.href} href={m.href}>
-              <div className="menu-item">
+              <div className="menu-item" style={{ position: 'relative' }}>
                 <div className="mi-ico" style={{ background: m.bg }}>{m.icon}</div>
                 <div className="mi-lbl">{m.lbl}</div>
+                {m.count > 0 && (
+                  <div style={{ position: 'absolute', top: 4, right: 10, background: 'var(--red)', color: 'white', borderRadius: 20, fontSize: 10, fontWeight: 800, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                    {m.count}
+                  </div>
+                )}
               </div>
             </Link>
           ))}

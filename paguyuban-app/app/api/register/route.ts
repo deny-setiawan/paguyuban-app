@@ -110,6 +110,17 @@ export async function POST(req: NextRequest) {
         }).returning()
         profileId = newProfile.id
       }
+      if (jenis === 'pemutakhiran_warga' && existing.length > 0) {
+        profileId = existing[0].id
+      }
+      if (jenis === 'pemutakhiran_warga' && existing.length === 0) {
+        // Phone belum di-sistem — buat profile baru (diperlakukan seperti warga_baru)
+        const [newProfile] = await db.insert(profiles).values({
+          phone: normalPhone, fullName: nama.trim(), role: 'warga',
+          rtGroupId: rt.id, isActive: false, isVerified: false, noRumah: noRumah || null,
+        }).returning()
+        profileId = newProfile.id
+      }
       if (jenis === 'pemutakhiran' && existing.length > 0) profileId = existing[0].id
     }
 

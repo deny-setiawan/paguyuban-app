@@ -217,10 +217,13 @@ export default function GuestPage({
 
   async function handleStep1Next() {
     if (!kepala.nama.trim()) { setNbMsg('Nama wajib diisi'); return }
+    if (!kepala.phone.trim()) { setNbMsg('Nomor HP (WhatsApp) wajib diisi'); return }
+    if (!kepala.noRumah.trim()) { setNbMsg('Blok & No. Rumah wajib diisi'); return }
+    if (!kepala.tgl) { setNbMsg('Tanggal mulai menempati wajib diisi'); return }
     setNbMsg('')
 
-    // For pemutakhiran with phone: check if phone exists (if not yet checked)
-    if (nbMode === 'pemutakhiran' && kepala.phone.trim() && !phoneCheck) {
+    // Check phone if not yet checked
+    if (!phoneCheck) {
       setPhoneChecking(true)
       try {
         const res = await fetch('/api/check-phone', {
@@ -234,7 +237,13 @@ export default function GuestPage({
       } finally {
         setPhoneChecking(false)
       }
-      return // Show result first, user clicks Lanjut again to proceed
+      return // Show result first, user clicks Lanjut again
+    }
+
+    // For warga_baru: block if phone already registered
+    if (nbMode === 'warga_baru' && phoneCheck.found) {
+      setNbMsg('Nomor HP sudah terdaftar. Gunakan nomor lain atau silakan login.')
+      return
     }
 
     setPhoneCheck(null)
@@ -243,7 +252,13 @@ export default function GuestPage({
 
   async function submitWargaBaru() {
     if (!kepala.nama.trim()) { setNbMsg('Nama wajib diisi'); return }
-    if (nbMode === 'warga_baru' && !kepala.phone.trim()) { setNbMsg('Nomor HP wajib diisi'); return }
+    if (!kepala.phone.trim()) { setNbMsg('Nomor HP wajib diisi'); return }
+    if (!kepala.noRumah.trim()) { setNbMsg('Blok & No. Rumah wajib diisi'); return }
+    if (fotoFiles.length === 0) { setNbMsg('Lampiran dokumen wajib diisi. Silakan unggah minimal 1 file.'); return }
+    // Determine actual jenis based on phoneCheck result
+    const actualJenis = nbMode === 'warga_baru'
+      ? 'warga_baru'
+      : (phoneCheck?.found ? 'pemutakhiran_warga' : 'warga_baru')
     setNbLoading(true); setNbMsg('')
     try {
       let fotoUrls: string[] = []
@@ -259,7 +274,7 @@ export default function GuestPage({
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jenis: nbMode, nama: kepala.nama, noRumah: kepala.noRumah,
+          jenis: actualJenis, nama: kepala.nama, noRumah: kepala.noRumah,
           phone: kepala.phone, dataKk: kepala,
           anggota: anggotaList.filter(a => a.nama.trim()),
           fotoFiles: fotoUrls,
@@ -309,11 +324,12 @@ export default function GuestPage({
 
   // Step 1 Lanjut button label
   const lanjutLabel = (() => {
-    if (nbMode !== 'pemutakhiran' || !kepala.phone.trim()) return 'Lanjut →'
     if (phoneChecking) return 'Memeriksa nomor…'
     if (!phoneCheck) return 'Lanjut →'
-    if (phoneCheck.found) return `Lanjut — Perbarui data →`
-    return 'Lanjut — Daftar akun baru →'
+    if (nbMode === 'warga_baru') {
+      return phoneCheck.found ? 'Nomor sudah terdaftar' : 'Lanjut →'
+    }
+    return phoneCheck.found ? 'Lanjut — Perbarui data →' : 'Lanjut — Daftar akun baru →'
   })()
 
   return (
@@ -564,7 +580,7 @@ export default function GuestPage({
 
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>
-                    Nomor HP (WhatsApp) {nbMode === 'warga_baru' ? '*' : ''}
+                    Nomor HP (WhatsApp) *
                   </label>
                   <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={kepala.phone}
                     onChange={e => setKepala(p => ({ ...p, phone: e.target.value }))} />
@@ -574,7 +590,23 @@ export default function GuestPage({
                   </div>
 
                   {/* Phone check result */}
-                  {phoneCheck && (
+                  {phoneCheck && nbMode === 'warga_baru' && phoneCheck.found && (
+                    <div className="ib" style={{ marginTop: 8, background: 'var(--red-l)', border: '1px solid var(--red)' }}>
+                      <AlertTriangle size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
+                      <div style={{ fontSize: 12 }}>
+                        <b>Nomor sudah terdaftar atas nama: {phoneCheck.nama}</b>
+                        <br />
+                        <span style={{ color: 'var(--gray500)' }}>
+                          Gunakan nomor lain, atau{' '}
+                          <button onClick={() => openSheet('login')} style={{ color: 'var(--g600)', fontWeight: 700, border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: 12, fontFamily: 'var(--f)', padding: 0 }}>
+                            login dengan nomor ini
+                          </button>
+                          {' '}untuk akses akun. Atau hubungi pengurus {rtName}.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {phoneCheck && (nbMode === 'pemutakhiran' || !phoneCheck.found) && (
                     <div className={`ib ${phoneCheck.found ? 'blue' : ''}`} style={{
                       marginTop: 8,
                       background: phoneCheck.found ? 'var(--g50)' : 'var(--gray50)',
@@ -586,14 +618,14 @@ export default function GuestPage({
                       <div style={{ fontSize: 12 }}>
                         {phoneCheck.found
                           ? <><b>Nomor terdaftar atas nama: {phoneCheck.nama}</b><br /><span style={{ color: 'var(--gray500)' }}>Data kepala keluarga ini akan diperbarui. Klik &quot;Lanjut&quot; untuk melanjutkan.</span></>
-                          : <><b>Nomor baru — belum terdaftar.</b><br /><span style={{ color: 'var(--gray500)' }}>Akan dibuat akun kepala keluarga baru dengan nomor ini. Klik &quot;Lanjut&quot; untuk melanjutkan.</span></>}
+                          : <><b>Nomor baru — belum terdaftar.</b><br /><span style={{ color: 'var(--gray500)' }}>Akan dibuat akun baru dengan nomor ini. Klik &quot;Lanjut&quot; untuk melanjutkan.</span></>}
                       </div>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Blok & No. Rumah</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Blok & No. Rumah *</label>
                   <input className="rl-in" placeholder="Mis. A-12 atau No. 5" value={kepala.noRumah} onChange={e => setKepala(p => ({ ...p, noRumah: e.target.value }))} />
                 </div>
 
@@ -632,7 +664,7 @@ export default function GuestPage({
                     </select>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Mulai Menempati</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Mulai Menempati *</label>
                     <input className="rl-in" type="date" value={kepala.tgl} onChange={e => setKepala(p => ({ ...p, tgl: e.target.value }))} />
                   </div>
                 </div>
@@ -728,8 +760,8 @@ export default function GuestPage({
                     <div style={{ fontSize: 12, color: 'var(--gray500)', textAlign: 'center' }}>{fotoFiles.length} file dipilih · Maks. 10 file</div>
                   </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--gray400)', fontSize: 12 }}>
-                    Belum ada foto yang dipilih.<br /><span style={{ fontSize: 11 }}>Lampiran tidak wajib, tapi sangat membantu verifikasi.</span>
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--red)', fontSize: 12 }}>
+                    Belum ada file dipilih.<br /><span style={{ fontSize: 11, color: 'var(--gray500)' }}>Lampiran <b>wajib</b> — minimal 1 file (foto KTP / KK).</span>
                   </div>
                 )}
               </div>
@@ -748,7 +780,11 @@ export default function GuestPage({
                 </button>
               ) : (
                 <button className="btn-p" style={{ flex: 1, height: 48, gap: 8 }}
-                  onClick={() => setShowConfirmModal(true)} disabled={nbLoading}>
+                  onClick={() => {
+                    if (fotoFiles.length === 0) { setNbMsg('Lampiran dokumen wajib. Unggah minimal 1 file.'); return }
+                    setNbMsg('')
+                    setShowConfirmModal(true)
+                  }} disabled={nbLoading}>
                   {nbLoading ? 'Mengirim…' : <><CheckCircle size={16} /> {nbMode === 'warga_baru' ? 'Kirim Pendaftaran' : 'Kirim Pembaruan'}</>}
                 </button>
               )}

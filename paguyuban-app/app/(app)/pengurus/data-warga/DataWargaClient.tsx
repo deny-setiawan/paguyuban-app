@@ -60,6 +60,7 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
       noRumah: item.noRumah || '',
       noKk: item.noKk || '',
       tanggalLahir: item.tanggalLahir || '',
+      tanggalMenempati: item.tanggalMenempati || '',
       statusSosial: item.statusSosial || '',
     })
   }
@@ -214,13 +215,22 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
             {/* Editable fields — only for warga records */}
             {detail.source === 'warga' && (
               <>
-                <input className="inp" value={editForm.namaLengkap || ''} onChange={e => setEditForm(f => ({ ...f, namaLengkap: e.target.value }))} placeholder="Nama lengkap" />
-                <input className="inp" value={editForm.nik || ''} onChange={e => setEditForm(f => ({ ...f, nik: e.target.value }))} placeholder="NIK (16 digit)" maxLength={16} />
-                <input className="inp" value={editForm.noKk || ''} onChange={e => setEditForm(f => ({ ...f, noKk: e.target.value }))} placeholder="No. KK" maxLength={16} />
-                <input className="inp" value={editForm.noRumah || ''} onChange={e => setEditForm(f => ({ ...f, noRumah: e.target.value }))} placeholder="No. Rumah" />
-                <input className="inp" value={editForm.tanggalLahir || ''} onChange={e => setEditForm(f => ({ ...f, tanggalLahir: e.target.value }))} placeholder="Tanggal lahir (YYYY-MM-DD)" />
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 8, letterSpacing: 0.5 }}>EDIT DATA</div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Nama Lengkap</label>
+                <input className="inp" value={editForm.namaLengkap || ''} onChange={e => setEditForm(f => ({ ...f, namaLengkap: e.target.value }))} placeholder="Nama lengkap sesuai KTP" />
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>NIK</label>
+                <input className="inp" value={editForm.nik || ''} onChange={e => setEditForm(f => ({ ...f, nik: e.target.value }))} placeholder="16 digit NIK" maxLength={16} inputMode="numeric" />
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>No. KK</label>
+                <input className="inp" value={editForm.noKk || ''} onChange={e => setEditForm(f => ({ ...f, noKk: e.target.value }))} placeholder="16 digit No. KK" maxLength={16} inputMode="numeric" />
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>No. Rumah / Blok</label>
+                <input className="inp" value={editForm.noRumah || ''} onChange={e => setEditForm(f => ({ ...f, noRumah: e.target.value }))} placeholder="Mis. A-12 atau No. 5" />
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Tanggal Lahir</label>
+                <input className="inp" type="date" value={editForm.tanggalLahir || ''} onChange={e => setEditForm(f => ({ ...f, tanggalLahir: e.target.value }))} />
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Tanggal Menempati</label>
+                <input className="inp" type="date" value={(editForm as Record<string, string>).tanggalMenempati || ''} onChange={e => setEditForm(f => ({ ...f, tanggalMenempati: e.target.value }))} />
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Status Sosial</label>
                 <select className="inp" value={editForm.statusSosial || ''} onChange={e => setEditForm(f => ({ ...f, statusSosial: e.target.value }))}>
-                  <option value="">Status sosial...</option>
+                  <option value="">— pilih status sosial —</option>
                   {['mampu', 'kurang_mampu', 'tidak_mampu', 'lansia', 'disabilitas'].map(s => (
                     <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
                   ))}

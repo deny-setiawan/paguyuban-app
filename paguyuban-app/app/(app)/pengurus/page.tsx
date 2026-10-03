@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, rtGroups, wargaInvites, iuranPayments, surat, laporanWarga, transaksi, warga } from '@/lib/db/schema'
+import { profiles, rtGroups, wargaInvites, iuranPayments, surat, laporanWarga, transaksi, warga, inventarisSewa } from '@/lib/db/schema'
 import { eq, and, count, desc } from 'drizzle-orm'
 import { rupiah } from '@/lib/utils'
 import Link from 'next/link'
@@ -57,7 +57,7 @@ export default async function PengurusPage() {
 
   const [
     jumlahWargaRes, pendingInviteRes, pendingPaymentRes,
-    pendingSuratRes, pendingLaporanRes, lastTransRes,
+    pendingSuratRes, pendingLaporanRes, lastTransRes, activeSewaRes,
   ] = await Promise.all([
     db.select({ c: count() }).from(warga).where(eq(warga.rtGroupId, rtId)),
     db.select({ c: count() }).from(wargaInvites).where(and(eq(wargaInvites.rtGroupId, rtId), eq(wargaInvites.status, 'pending'))),
@@ -65,6 +65,7 @@ export default async function PengurusPage() {
     db.select({ c: count() }).from(surat).where(and(eq(surat.rtGroupId, rtId), eq(surat.status, 'diajukan'))),
     db.select({ c: count() }).from(laporanWarga).where(and(eq(laporanWarga.rtGroupId, rtId), eq(laporanWarga.status, 'menunggu'))),
     db.select().from(transaksi).where(eq(transaksi.rtGroupId, rtId)).orderBy(desc(transaksi.createdAt)).limit(1),
+    db.select({ c: count() }).from(inventarisSewa).where(eq(inventarisSewa.status, 'disewa')),
   ])
 
   const stats = {
@@ -74,6 +75,7 @@ export default async function PengurusPage() {
     pendingSurat: pendingSuratRes[0]?.c ?? 0,
     pendingLaporan: pendingLaporanRes[0]?.c ?? 0,
     saldoKas: lastTransRes[0]?.saldoSetelah ?? 0,
+    activeSewa: activeSewaRes[0]?.c ?? 0,
   }
 
   const role = payload.role
@@ -260,9 +262,14 @@ export default async function PengurusPage() {
         )}
         {(isFullAccess) && (
           <Link href="/pengurus/inventaris-kelola">
-            <div className="menu-item">
+            <div className="menu-item" style={{ position: 'relative' }}>
               <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
               <div className="mi-lbl">Inventaris</div>
+              {stats.activeSewa > 0 && (
+                <div style={{ position: 'absolute', top: 4, right: 10, background: 'var(--gold)', color: 'white', borderRadius: 20, fontSize: 10, fontWeight: 800, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                  {stats.activeSewa}
+                </div>
+              )}
             </div>
           </Link>
         )}

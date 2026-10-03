@@ -45,39 +45,61 @@ export async function PATCH(req: NextRequest) {
       await db.update(profiles).set({ isActive: true }).where(eq(profiles.id, invite.profileId))
     }
 
-    if (invite.profileId) {
-      const existing = await db.select().from(warga).where(eq(warga.profileId, invite.profileId)).limit(1)
-      if (existing.length === 0) {
-        const dataKk = invite.dataKk as Record<string, string> | null
-        await db.insert(warga).values({
-          rtGroupId: invite.rtGroupId,
-          profileId: invite.profileId,
-          namaLengkap: invite.nama,
-          noRumah: invite.noRumah || null,
-          kkStatus: 'kepala_kk',
-          statusHunian: dataKk?.hunian || null,
-          statusPerkawinan: dataKk?.kawin || null,
-          jenisKelamin: dataKk?.jk || null,
-          agama: dataKk?.agama || null,
-          pekerjaan: dataKk?.pekerjaan || null,
-          tanggalLahir: dataKk?.tgl || null,
-          alamatLengkap: dataKk?.alamat || null,
-        })
+    const dataKk = invite.dataKk as Record<string, string> | null
+    const anggotaList = invite.anggota as Array<Record<string, string>> | null
 
-        const anggota = invite.anggota as Array<Record<string, string>> | null
-        if (Array.isArray(anggota)) {
-          for (const a of anggota) {
-            await db.insert(warga).values({
-              rtGroupId: invite.rtGroupId,
-              namaLengkap: a.nama || '',
-              hubunganKeluarga: a.hubungan || null,
-              tanggalLahir: a.tgl || null,
-              jenisKelamin: a.jk || null,
-              agama: a.agama || null,
-              pekerjaan: a.pekerjaan || null,
-              kkStatus: 'anggota',
-              noRumah: invite.noRumah || null,
-            })
+    if (invite.jenis === 'pemutakhiran_warga') {
+      // Update existing warga record with new data from form
+      if (invite.profileId) {
+        const [existingWarga] = await db.select().from(warga)
+          .where(eq(warga.profileId, invite.profileId)).limit(1)
+        if (existingWarga) {
+          await db.update(warga).set({
+            namaLengkap: invite.nama,
+            noRumah: invite.noRumah || existingWarga.noRumah,
+            statusHunian: dataKk?.hunian || existingWarga.statusHunian,
+            statusPerkawinan: dataKk?.kawin || existingWarga.statusPerkawinan,
+            jenisKelamin: dataKk?.jk || existingWarga.jenisKelamin,
+            agama: dataKk?.agama || existingWarga.agama,
+            tanggalMenempati: dataKk?.tgl || existingWarga.tanggalMenempati,
+          }).where(eq(warga.id, existingWarga.id))
+        }
+      }
+    } else {
+      // warga_baru: create new warga record if not exists
+      if (invite.profileId) {
+        const existing = await db.select().from(warga).where(eq(warga.profileId, invite.profileId)).limit(1)
+        if (existing.length === 0) {
+          await db.insert(warga).values({
+            rtGroupId: invite.rtGroupId,
+            profileId: invite.profileId,
+            namaLengkap: invite.nama,
+            noRumah: invite.noRumah || null,
+            kkStatus: 'kepala_kk',
+            statusHunian: dataKk?.hunian || null,
+            statusPerkawinan: dataKk?.kawin || null,
+            jenisKelamin: dataKk?.jk || null,
+            agama: dataKk?.agama || null,
+            pekerjaan: dataKk?.pekerjaan || null,
+            tanggalMenempati: dataKk?.tgl || null,
+            alamatLengkap: dataKk?.alamat || null,
+          })
+
+          if (Array.isArray(anggotaList)) {
+            for (const a of anggotaList) {
+              if (!a.nama?.trim()) continue
+              await db.insert(warga).values({
+                rtGroupId: invite.rtGroupId,
+                namaLengkap: a.nama || '',
+                hubunganKeluarga: a.hub || a.hubungan || null,
+                tanggalLahir: a.tgl || null,
+                jenisKelamin: a.jk || null,
+                agama: a.agama || null,
+                pekerjaan: a.pekerjaan || null,
+                kkStatus: 'anggota',
+                noRumah: invite.noRumah || null,
+              })
+            }
           }
         }
       }

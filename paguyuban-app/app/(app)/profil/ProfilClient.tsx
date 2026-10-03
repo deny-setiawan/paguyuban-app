@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X } from 'lucide-react'
+import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown } from 'lucide-react'
 
 interface ProfileData {
   id: string
@@ -21,6 +21,7 @@ interface WargaData {
   nik: string | null
   noKk: string | null
   tanggalLahir: string | null
+  tanggalMenempati: string | null
   jenisKelamin: string | null
   agama: string | null
   pekerjaan: string | null
@@ -28,11 +29,23 @@ interface WargaData {
   statusHunian: string | null
   jumlahJiwa: number | null
   alamatLengkap: string | null
+  dansosKelahiranTerpakai: number | null
+  dansosSakitTerpakai: number | null
+}
+
+interface AnggotaItem {
+  id: string
+  namaLengkap: string
+  hubunganKeluarga: string | null
+  jenisKelamin: string | null
+  agama: string | null
+  kkStatus: string | null
 }
 
 interface Props {
   profile: ProfileData
   warga: WargaData | null
+  anggota: AnggotaItem[]
   rtName: string
   fotoFiles: string[]
 }
@@ -44,7 +57,7 @@ const ROLE_LABELS: Record<string, string> = {
   keamanan: 'Seksi Keamanan', peralatan: 'Seksi Peralatan', admin: 'Admin',
 }
 
-export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Props) {
+export default function ProfilClient({ profile, warga, anggota, rtName, fotoFiles }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [fotoModal, setFotoModal] = useState<string | null>(null)
@@ -54,6 +67,7 @@ export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Prop
     email: profile.email || '',
     pekerjaan: warga?.pekerjaan || '',
     tanggalLahir: warga?.tanggalLahir || '',
+    tanggalMenempati: warga?.tanggalMenempati || '',
   })
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
@@ -133,6 +147,8 @@ export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Prop
           <input className="rl-in" value={form.pekerjaan} onChange={e => setForm(p => ({ ...p, pekerjaan: e.target.value }))} placeholder="Mis. Karyawan Swasta" />
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Tanggal Lahir</label>
           <input className="rl-in" type="date" value={form.tanggalLahir} onChange={e => setForm(p => ({ ...p, tanggalLahir: e.target.value }))} />
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Tanggal Menempati</label>
+          <input className="rl-in" type="date" value={form.tanggalMenempati} onChange={e => setForm(p => ({ ...p, tanggalMenempati: e.target.value }))} />
           {msg && <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10 }}>{msg}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button className="rl-b" style={{ flex: 1, height: 44 }} onClick={() => { setEditing(false); setMsg('') }}>Batal</button>
@@ -142,7 +158,7 @@ export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Prop
           </div>
         </div>
       ) : (
-        <div className="peng-card" style={{ padding: '4px 0' }}>
+        <div className="peng-card" style={{ padding: '4px 14px' }}>
           <div className="kv"><span className="k">Nama</span><span className="v">{profile.fullName || '—'}</span></div>
           <div className="kv"><span className="k">No. HP</span><span className="v">{profile.phone}</span></div>
           <div className="kv"><span className="k">No. Rumah</span><span className="v">{profile.noRumah || '—'}</span></div>
@@ -157,16 +173,54 @@ export default function ProfilClient({ profile, warga, rtName, fotoFiles }: Prop
           <div className="sec-h" style={{ margin: '20px 0 12px' }}>
             <div className="t"><ClipboardList size={16} /> Data KK</div>
           </div>
-          <div className="peng-card" style={{ padding: '4px 0' }}>
+          <div className="peng-card" style={{ padding: '4px 14px' }}>
             <div className="kv"><span className="k">Nama KK</span><span className="v">{warga.namaLengkap}</span></div>
             <div className="kv"><span className="k">NIK</span><span className="v">{warga.nik || '—'}</span></div>
             <div className="kv"><span className="k">No. KK</span><span className="v">{warga.noKk || '—'}</span></div>
             <div className="kv"><span className="k">Tanggal lahir</span><span className="v">{warga.tanggalLahir || '—'}</span></div>
+            <div className="kv"><span className="k">Tgl. menempati</span><span className="v">{warga.tanggalMenempati || '—'}</span></div>
             <div className="kv"><span className="k">Jenis kelamin</span><span className="v">{warga.jenisKelamin === 'L' ? 'Laki-laki' : warga.jenisKelamin === 'P' ? 'Perempuan' : '—'}</span></div>
             <div className="kv"><span className="k">Agama</span><span className="v">{warga.agama || '—'}</span></div>
             <div className="kv"><span className="k">Pekerjaan</span><span className="v">{warga.pekerjaan || '—'}</span></div>
             <div className="kv"><span className="k">Status hunian</span><span className="v">{warga.statusHunian || '—'}</span></div>
             <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Jumlah jiwa</span><span className="v">{warga.jumlahJiwa ?? '—'}</span></div>
+          </div>
+
+          {/* Anggota Keluarga */}
+          {anggota.length > 0 && (
+            <>
+              <div className="sec-h" style={{ margin: '20px 0 12px' }}>
+                <div className="t"><Users size={16} /> Anggota Keluarga</div>
+                <span style={{ fontSize: 12, color: 'var(--gray400)', fontWeight: 700 }}>{anggota.length} jiwa</span>
+              </div>
+              <div className="peng-card">
+                {anggota.map(a => (
+                  <div key={a.id} className="peng-item" style={{ cursor: 'default' }}>
+                    <div className="pi-ico" style={{ background: a.kkStatus === 'kepala_kk' ? 'var(--g50)' : 'var(--gray100)' }}>
+                      {a.kkStatus === 'kepala_kk' ? <Crown size={18} color="var(--g600)" /> : <User size={18} color="var(--gray500)" />}
+                    </div>
+                    <div className="pi-body">
+                      <div className="pi-t">
+                        {a.namaLengkap}
+                        {a.hubunganKeluarga && <span className="pill selesai">{a.hubunganKeluarga}</span>}
+                      </div>
+                      <div className="pi-d">
+                        {[a.jenisKelamin === 'L' ? 'Laki-laki' : a.jenisKelamin === 'P' ? 'Perempuan' : null, a.agama].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Dana Sosial */}
+          <div className="sec-h" style={{ margin: '20px 0 12px' }}>
+            <div className="t"><ClipboardList size={16} /> Dana Sosial Saya</div>
+          </div>
+          <div className="peng-card" style={{ padding: '4px 14px' }}>
+            <div className="kv"><span className="k">Dansos Kelahiran Terpakai</span><span className="v">{warga.dansosKelahiranTerpakai ?? 0}×</span></div>
+            <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Dansos Sakit Terpakai</span><span className="v">{warga.dansosSakitTerpakai ?? 0}×</span></div>
           </div>
         </>
       )}

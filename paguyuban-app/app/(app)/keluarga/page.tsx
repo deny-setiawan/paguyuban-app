@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles, warga } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
 import { ClipboardList, Info, Users, Crown, User } from 'lucide-react'
 
 export default async function KeluargaPage() {
@@ -19,9 +19,12 @@ export default async function KeluargaPage() {
   const [kepalaKk] = await db.select().from(warga)
     .where(eq(warga.profileId, profile.id)).limit(1)
 
+  // Show family members: by noKK if available, else by noRumah, else just the kepala
   const allAnggota = kepalaKk?.noKk
     ? await db.select().from(warga).where(eq(warga.noKk, kepalaKk.noKk))
-    : kepalaKk ? [kepalaKk] : []
+    : kepalaKk?.noRumah
+      ? await db.select().from(warga).where(eq(warga.noRumah, kepalaKk.noRumah))
+      : kepalaKk ? [kepalaKk] : []
 
   return (
     <>
@@ -44,7 +47,7 @@ export default async function KeluargaPage() {
           <div className="sec-h" style={{ marginBottom: 12 }}>
             <div className="t"><Users size={16} /> Data Kepala KK</div>
           </div>
-          <div className="peng-card" style={{ padding: '4px 0', marginBottom: 20 }}>
+          <div className="peng-card" style={{ padding: '4px 14px', marginBottom: 20 }}>
             <div className="kv"><span className="k">Nama KK</span><span className="v">{kepalaKk.namaLengkap}</span></div>
             {kepalaKk.noKk && <div className="kv"><span className="k">No. KK</span><span className="v">{kepalaKk.noKk}</span></div>}
             {kepalaKk.nik && <div className="kv"><span className="k">NIK</span><span className="v">{kepalaKk.nik}</span></div>}
@@ -63,10 +66,10 @@ export default async function KeluargaPage() {
             <span style={{ fontSize: 12, color: 'var(--gray400)', fontWeight: 700 }}>{allAnggota.length} jiwa</span>
           </div>
 
-          {allAnggota.length <= 1 && !kepalaKk.noKk ? (
+          {allAnggota.length <= 1 && !kepalaKk.noKk && !kepalaKk.noRumah ? (
             <div className="ib blue">
               <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-              <div>Data anggota keluarga akan muncul setelah No. KK diisi oleh pengurus RT.</div>
+              <div>Data anggota keluarga akan muncul setelah No. KK atau No. Rumah diisi oleh pengurus RT.</div>
             </div>
           ) : (
             <div className="peng-card">

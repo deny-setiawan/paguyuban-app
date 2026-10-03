@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { profiles, rtGroups, warga, wargaInvites } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import ProfilClient from './ProfilClient'
+import type { Warga as WargaType } from '@/lib/db/schema'
 
 export default async function ProfilPage() {
   const cookieStore = await cookies()
@@ -24,6 +25,14 @@ export default async function ProfilPage() {
   }
 
   const [wargaData] = await db.select().from(warga).where(eq(warga.profileId, profile.id)).limit(1)
+
+  // Anggota keluarga: by noKK if available, else by noRumah
+  let anggotaList: WargaType[] = []
+  if (wargaData?.noKk) {
+    anggotaList = await db.select().from(warga).where(eq(warga.noKk, wargaData.noKk))
+  } else if (wargaData?.noRumah) {
+    anggotaList = await db.select().from(warga).where(eq(warga.noRumah, wargaData.noRumah))
+  }
 
   // Get foto from latest wargaInvite for this profile
   const [latestInvite] = await db.select({ fotoFiles: wargaInvites.fotoFiles })
@@ -51,6 +60,7 @@ export default async function ProfilPage() {
         nik: wargaData.nik,
         noKk: wargaData.noKk,
         tanggalLahir: wargaData.tanggalLahir,
+        tanggalMenempati: wargaData.tanggalMenempati,
         jenisKelamin: wargaData.jenisKelamin,
         agama: wargaData.agama,
         pekerjaan: wargaData.pekerjaan,
@@ -58,7 +68,12 @@ export default async function ProfilPage() {
         statusHunian: wargaData.statusHunian,
         jumlahJiwa: wargaData.jumlahJiwa,
         alamatLengkap: wargaData.alamatLengkap,
+        dansosKelahiranTerpakai: wargaData.dansosKelahiranTerpakai,
+        dansosSakitTerpakai: wargaData.dansosSakitTerpakai,
       } : null}
+      anggota={anggotaList
+        .filter(a => a.id !== wargaData?.id)
+        .map(a => ({ id: a.id, namaLengkap: a.namaLengkap, hubunganKeluarga: a.hubunganKeluarga, jenisKelamin: a.jenisKelamin, agama: a.agama, kkStatus: a.kkStatus }))}
       rtName={rt?.namaRt || 'Paguyuban PKR-Pepe'}
       fotoFiles={fotoFiles}
     />

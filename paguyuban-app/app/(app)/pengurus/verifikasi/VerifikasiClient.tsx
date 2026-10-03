@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
-import { Users, User, CheckCircle, XCircle, FileText, X } from 'lucide-react'
+import { Users, User, CheckCircle, XCircle, FileText, X, AlertTriangle } from 'lucide-react'
 
 function detectDocType(url: string): 'image' | 'pdf' {
   if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
@@ -45,6 +45,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   const [loading, setLoading] = useState<string | null>(null)
   const [detail, setDetail] = useState<InviteItem | null>(null)
   const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
+  const [confirmApprove, setConfirmApprove] = useState<InviteItem | null>(null)
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
     setLoading(id + action)
@@ -59,8 +60,18 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
         : i
       ))
       setDetail(null)
+      setConfirmApprove(null)
     }
     setLoading(null)
+  }
+
+  function tryApprove(item: InviteItem) {
+    // For warga_baru: show confirmation that new warga data will be created
+    if (item.jenis === 'warga_baru' || !item.jenis) {
+      setConfirmApprove(item)
+    } else {
+      handleAction(item.id, 'approve')
+    }
   }
 
   const pending = list.filter(i => i.status === 'pending')
@@ -169,7 +180,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
               <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
                 <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   disabled={!!loading}
-                  onClick={() => handleAction(detail.id, 'approve')}>
+                  onClick={() => tryApprove(detail)}>
                   {loading === detail.id + 'approve' ? '...' : <><CheckCircle size={14} /> Setujui</>}
                 </button>
                 <button className="btn-ghost" style={{ flex: 1, color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
@@ -229,6 +240,38 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             })}
           </div>
         </>
+      )}
+
+      {confirmApprove && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}
+          onClick={() => !loading && setConfirmApprove(null)}>
+          <div style={{ background: 'white', borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <AlertTriangle size={22} color="var(--gold)" />
+              <div style={{ fontWeight: 800, fontSize: 16 }}>Konfirmasi Setujui</div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--gray600)', marginBottom: 6, lineHeight: 1.5 }}>
+              Menyetujui pendaftaran <b>{confirmApprove.nama}</b> akan membuat:
+            </p>
+            <ul style={{ fontSize: 13, color: 'var(--gray600)', paddingLeft: 18, marginBottom: 16, lineHeight: 1.7 }}>
+              <li>Data warga baru di sistem</li>
+              {confirmApprove.anggota && confirmApprove.anggota.length > 0 && (
+                <li>{confirmApprove.anggota.length} data anggota keluarga</li>
+              )}
+              <li>Akun aktif untuk nomor HP terdaftar</li>
+            </ul>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-ghost" style={{ flex: 1, height: 44, justifyContent: 'center' }}
+                onClick={() => setConfirmApprove(null)} disabled={!!loading}>
+                Batal
+              </button>
+              <button className="btn-primary" style={{ flex: 2, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                onClick={() => handleAction(confirmApprove.id, 'approve')} disabled={!!loading}>
+                {loading === confirmApprove.id + 'approve' ? 'Memproses...' : <><CheckCircle size={14} /> Ya, Setujui</>}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {docModal && (

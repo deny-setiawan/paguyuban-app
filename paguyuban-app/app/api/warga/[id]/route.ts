@@ -17,8 +17,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json()
 
-  const wargaFields = ['namaLengkap', 'nik', 'noKk', 'noRumah', 'tanggalLahir', 'jenisKelamin',
-    'agama', 'pekerjaan', 'statusPerkawinan', 'statusHunian', 'hubunganKeluarga',
+  const wargaFields = ['namaLengkap', 'nik', 'noKk', 'noRumah', 'tanggalLahir', 'tanggalMenempati',
+    'jenisKelamin', 'agama', 'pekerjaan', 'statusPerkawinan', 'statusHunian', 'hubunganKeluarga',
     'statusSosial', 'alamatLengkap', 'status', 'jumlahJiwa']
   const updates: Record<string, unknown> = {}
   for (const k of wargaFields) {

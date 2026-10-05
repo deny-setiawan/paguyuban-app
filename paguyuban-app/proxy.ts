@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 
 // Paths unauthenticated users can access freely
-const PUBLIC_PATHS = ['/', '/login', '/otp', '/register', '/inventaris', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/inventaris', '/api/register']
+const PUBLIC_PATHS = ['/', '/login', '/otp', '/admin-login', '/register', '/inventaris', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/admin-login', '/api/inventaris', '/api/register']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Admin bypass: jika menuju /otp tapi punya cookie admin_bp → redirect ke /admin-login
+  if (pathname === '/otp') {
+    const adminBp = request.cookies.get('admin_bp')
+    if (adminBp?.value) {
+      return NextResponse.redirect(new URL('/admin-login', request.url))
+    }
+  }
 
   const isPublic = PUBLIC_PATHS.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)))
   if (isPublic) return NextResponse.next()

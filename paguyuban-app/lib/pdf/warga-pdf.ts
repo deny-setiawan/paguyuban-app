@@ -25,6 +25,13 @@ export interface KkExportData {
   fotoFiles: string[] | null
 }
 
+export interface PdfBuildResult {
+  previewUrl: string
+  filename: string
+  download: () => void
+  cleanup: () => void
+}
+
 async function loadImgBase64(url: string): Promise<string | null> {
   try {
     const res = await fetch(url)
@@ -70,7 +77,7 @@ async function addKkPage(
   const kepala = kk.kepala
   const rows: [string, string][] = [
     ['Nama Kepala Keluarga', kepala?.namaLengkap || '-'],
-    [`Alamat Rumah di ${rtName}`, `No. Yang Ditempati: ${kk.noRumah || '-'}`],
+    [`Alamat Rumah di ${rtName}`, kk.noRumah || '-'],
     ['No. Telepon', kepala?.phone || '-'],
     ['Agama', kepala?.agama || '-'],
     ['Jenis Kelamin', kepala?.jenisKelamin === 'L' ? 'Laki-laki' : kepala?.jenisKelamin === 'P' ? 'Perempuan' : '-'],
@@ -166,21 +173,28 @@ async function addKkPage(
   }
 }
 
-export async function exportKkPdf(kk: KkExportData, rtName: string) {
-  const { default: jsPDF } = await import('jspdf')
-  const { default: autoTable } = await import('jspdf-autotable')
-  const doc = new jsPDF()
-  await addKkPage(doc, autoTable, kk, rtName, true)
-  const nama = (kk.kepala?.namaLengkap || kk.noRumah || 'warga').replace(/\s+/g, '_')
-  doc.save(`FormulirDataWarga_${nama}.pdf`)
-}
-
-export async function exportAllKkPdf(kkList: KkExportData[], rtName: string) {
+async function buildDoc(kkList: KkExportData[], rtName: string, filename: string): Promise<PdfBuildResult> {
   const { default: jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF()
   for (let i = 0; i < kkList.length; i++) {
     await addKkPage(doc, autoTable, kkList[i], rtName, i === 0)
   }
-  doc.save(`FormulirDataWarga_Semua_${rtName.replace(/\s+/g, '_')}.pdf`)
+  const blob = doc.output('blob')
+  const previewUrl = URL.createObjectURL(blob)
+  return {
+    previewUrl,
+    filename,
+    download: () => doc.save(filename),
+    cleanup: () => URL.revokeObjectURL(previewUrl),
+  }
+}
+
+export async function buildKkPdf(kk: KkExportData, rtName: string): Promise<PdfBuildResult> {
+  const nama = (kk.kepala?.namaLengkap || kk.noRumah || 'warga').replace(/\s+/g, '_')
+  return buildDoc([kk], rtName, `FormulirDataWarga_${nama}.pdf`)
+}
+
+export async function buildAllKkPdf(kkList: KkExportData[], rtName: string): Promise<PdfBuildResult> {
+  return buildDoc(kkList, rtName, `FormulirDataWarga_Semua_${rtName.replace(/\s+/g, '_')}.pdf`)
 }

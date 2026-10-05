@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { FileDown, Crown, User, Info, Users } from 'lucide-react'
-import type { KkExportData } from '@/lib/pdf/warga-pdf'
+import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
+import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
 interface WargaData {
   id: string
@@ -33,13 +34,19 @@ interface Props {
 }
 
 export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone, fotoFiles, rtName }: Props) {
-  const [exporting, setExporting] = useState(false)
+  const [building, setBuilding] = useState(false)
+  const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
+
+  function closePdfPreview() {
+    pdfPreview?.cleanup()
+    setPdfPreview(null)
+  }
 
   async function handleExport() {
     if (!kepalaKk) return
-    setExporting(true)
+    setBuilding(true)
     try {
-      const { exportKkPdf } = await import('@/lib/pdf/warga-pdf')
+      const { buildKkPdf } = await import('@/lib/pdf/warga-pdf')
       const exportData: KkExportData = {
         noRumah: kepalaKk.noRumah,
         kepala: {
@@ -64,9 +71,10 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
         })),
         fotoFiles: fotoFiles.length > 0 ? fotoFiles : null,
       }
-      await exportKkPdf(exportData, rtName)
+      const result = await buildKkPdf(exportData, rtName)
+      setPdfPreview(result)
     } finally {
-      setExporting(false)
+      setBuilding(false)
     }
   }
 
@@ -90,13 +98,22 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
 
   return (
     <>
+      {pdfPreview && (
+        <PdfPreviewModal
+          previewUrl={pdfPreview.previewUrl}
+          filename={pdfPreview.filename}
+          onDownload={pdfPreview.download}
+          onClose={closePdfPreview}
+        />
+      )}
+
       <div className="sec-h" style={{ marginBottom: 12 }}>
         <div className="t"><Users size={16} /> Data Kepala KK</div>
         <button
           onClick={handleExport}
-          disabled={exporting}
-          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1.5px solid var(--g600)', color: 'var(--g600)', borderRadius: 10, padding: '5px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: exporting ? 0.7 : 1 }}>
-          <FileDown size={13} /> {exporting ? 'Membuat PDF...' : 'Export PDF'}
+          disabled={building}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1.5px solid var(--g600)', color: 'var(--g600)', borderRadius: 10, padding: '5px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: building ? 0.7 : 1 }}>
+          <FileDown size={13} /> {building ? 'Membuat PDF...' : 'Export PDF'}
         </button>
       </div>
       <div className="peng-card" style={{ padding: '4px 14px', marginBottom: 20 }}>

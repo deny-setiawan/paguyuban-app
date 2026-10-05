@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown } from 'lucide-react'
-import type { KkExportData } from '@/lib/pdf/warga-pdf'
+import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
+import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
 interface WargaItem {
   id: string
@@ -81,24 +82,30 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; noRumah: string; nama: string } | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [fotoModal, setFotoModal] = useState<string | null>(null)
-  const [exportingKk, setExportingKk] = useState<string | null>(null)
-  const [exportingAll, setExportingAll] = useState(false)
+  const [buildingKk, setBuildingKk] = useState<string | null>(null)
+  const [buildingAll, setBuildingAll] = useState(false)
+  const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
+
+  function closePdfPreview() {
+    pdfPreview?.cleanup()
+    setPdfPreview(null)
+  }
 
   async function handleExportKk(group: KKGroup) {
-    setExportingKk(group.noRumah)
+    setBuildingKk(group.noRumah)
     try {
-      const { exportKkPdf } = await import('@/lib/pdf/warga-pdf')
-      await exportKkPdf(kkToExportData(group), rtName)
+      const { buildKkPdf } = await import('@/lib/pdf/warga-pdf')
+      const result = await buildKkPdf(kkToExportData(group), rtName)
+      setPdfPreview(result)
     } finally {
-      setExportingKk(null)
+      setBuildingKk(null)
     }
   }
 
   async function handleExportAll() {
-    setExportingAll(true)
+    setBuildingAll(true)
     try {
-      const { exportAllKkPdf } = await import('@/lib/pdf/warga-pdf')
-      // compute kkGroups from current list (avoids TDZ on kkGroups const)
+      const { buildAllKkPdf } = await import('@/lib/pdf/warga-pdf')
       const map: Record<string, KKGroup> = {}
       for (const w of list) {
         const key = w.noRumah || 'Tanpa Nomor'
@@ -108,9 +115,10 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
         else map[key].anggota.push(w)
       }
       const allKk = Object.values(map).sort((a, b) => a.noRumah.localeCompare(b.noRumah))
-      await exportAllKkPdf(allKk.map(kkToExportData), rtName)
+      const result = await buildAllKkPdf(allKk.map(kkToExportData), rtName)
+      setPdfPreview(result)
     } finally {
-      setExportingAll(false)
+      setBuildingAll(false)
     }
   }
 
@@ -183,6 +191,16 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
 
   return (
     <>
+      {/* PDF Preview Modal */}
+      {pdfPreview && (
+        <PdfPreviewModal
+          previewUrl={pdfPreview.previewUrl}
+          filename={pdfPreview.filename}
+          onDownload={pdfPreview.download}
+          onClose={closePdfPreview}
+        />
+      )}
+
       {/* Foto lightbox */}
       {fotoModal && (
         <div
@@ -330,9 +348,9 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
       {tab === 'warga' && (
         <button
           onClick={handleExportAll}
-          disabled={exportingAll || list.length === 0}
-          style={{ width: '100%', marginBottom: 16, height: 40, borderRadius: 12, border: '1.5px solid var(--g600)', background: 'white', color: 'var(--g600)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: exportingAll ? 0.7 : 1 }}>
-          <FileDown size={15} /> {exportingAll ? 'Membuat PDF...' : `Export All PDF (${kkGroups.length} KK)`}
+          disabled={buildingAll || list.length === 0}
+          style={{ width: '100%', marginBottom: 16, height: 40, borderRadius: 12, border: '1.5px solid var(--g600)', background: 'white', color: 'var(--g600)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: buildingAll ? 0.7 : 1 }}>
+          <FileDown size={15} /> {buildingAll ? 'Membuat PDF...' : `Export All PDF (${kkGroups.length} KK)`}
         </button>
       )}
 
@@ -399,9 +417,9 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
                       className="btn-ghost"
                       style={{ fontSize: 11, color: 'var(--g600)', borderColor: 'var(--g300)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
                       onClick={() => handleExportKk(group)}
-                      disabled={exportingKk === group.noRumah}
+                      disabled={buildingKk === group.noRumah}
                       title="Export PDF">
-                      <FileDown size={11} /> {exportingKk === group.noRumah ? '...' : 'PDF'}
+                      <FileDown size={11} /> {buildingKk === group.noRumah ? '...' : 'PDF'}
                     </button>
                     {kepala && kepala.source === 'warga' && (
                       <button className="btn-ghost" style={{ fontSize: 11, color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}

@@ -12,13 +12,22 @@ export async function POST(request: NextRequest) {
     if (!phone || !otp) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
 
     const normalized = normalizePhone(phone)
-    const valid = await verifyOtp(normalized, otp)
-    if (!valid) {
-      return NextResponse.json({ error: 'Kode OTP salah atau sudah kadaluarsa' }, { status: 401 })
-    }
 
-    // Get or create profile (always use normalized phone)
+    // Cek profil terlebih dahulu untuk deteksi admin bypass
     let [profile] = await db.select().from(profiles).where(eq(profiles.phone, normalized)).limit(1)
+
+    const isAdmin = profile?.role === 'admin' ||
+      (process.env.ADMIN_PHONE || '').split(',').map(s => s.trim()).filter(Boolean).includes(normalized)
+
+    if (!isAdmin) {
+      // Warga/pengurus biasa: validasi OTP normal
+      const valid = await verifyOtp(normalized, otp)
+      if (!valid) {
+        return NextResponse.json({ error: 'Kode OTP salah atau sudah kadaluarsa' }, { status: 401 })
+      }
+    }
+    // Admin: skip validasi OTP, langsung login
+
     if (!profile) {
       const [created] = await db.insert(profiles).values({ phone: normalized, role: 'tamu' }).returning()
       profile = created

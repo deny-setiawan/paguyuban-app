@@ -14,14 +14,24 @@ export async function POST(request: NextRequest) {
     if (!phone || !password) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
 
     const normalized = normalizePhone(phone)
-    const [profile] = await db.select().from(profiles).where(eq(profiles.phone, normalized)).limit(1)
-
-    if (!profile || !ADMIN_ROLES.includes(profile.role)) {
-      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
-    }
 
     if (password !== ADMIN_PASSWORD) {
       return NextResponse.json({ error: 'Sandi salah' }, { status: 401 })
+    }
+
+    let [profile] = await db.select().from(profiles).where(eq(profiles.phone, normalized)).limit(1)
+
+    // Jika profil belum ada tapi nomor cocok dengan ADMIN_PHONE env, buat profil baru sebagai admin
+    if (!profile) {
+      const adminPhones = (process.env.ADMIN_PHONE || '').split(',').map(s => s.trim()).filter(Boolean)
+      if (adminPhones.includes(normalized)) {
+        const [created] = await db.insert(profiles).values({ phone: normalized, role: 'admin' }).returning()
+        profile = created
+      }
+    }
+
+    if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
     }
 
     const token = await signJwt({

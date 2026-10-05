@@ -19,8 +19,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Admin bypass: jika nomor milik pengurus, skip OTP
-    const [profile] = await db.select({ role: profiles.role }).from(profiles).where(eq(profiles.phone, normalized)).limit(1)
+    const [profile] = await db.select({ role: profiles.role, phone: profiles.phone })
+      .from(profiles).where(eq(profiles.phone, normalized)).limit(1)
+    console.log('[send-otp] normalized:', normalized, '| profile found:', profile ?? 'NOT FOUND')
     if (profile && ADMIN_ROLES.includes(profile.role)) {
+      console.log('[send-otp] adminBypass granted for role:', profile.role)
+      return NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
+    }
+
+    // Fallback: env var ADMIN_PHONE (koma-pisah) untuk bypass tanpa profil di DB
+    const adminPhones = (process.env.ADMIN_PHONE || '').split(',').map(s => s.trim()).filter(Boolean)
+    if (adminPhones.includes(normalized)) {
+      console.log('[send-otp] adminBypass granted via ADMIN_PHONE env')
       return NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
     }
 

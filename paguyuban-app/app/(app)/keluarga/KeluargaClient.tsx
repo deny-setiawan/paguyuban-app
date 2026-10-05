@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileDown, Crown, User, Info, Users } from 'lucide-react'
+import { FileDown, Crown, User, Info, Users, FileText, X, Baby, Activity, Handshake } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
@@ -31,11 +31,15 @@ interface Props {
   phone: string | null
   fotoFiles: string[]
   rtName: string
+  kelahiranTerpakai: number
+  sakitByPerson: Record<string, number>
+  tahun: number
 }
 
-export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone, fotoFiles, rtName }: Props) {
+export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone, fotoFiles, rtName, kelahiranTerpakai, sakitByPerson, tahun }: Props) {
   const [building, setBuilding] = useState(false)
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
+  const [fotoModal, setFotoModal] = useState<string | null>(null)
 
   function closePdfPreview() {
     pdfPreview?.cleanup()
@@ -166,6 +170,87 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Dana Sosial Keluarga */}
+      <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
+        <div className="t"><Handshake size={16} /> Dana Sosial Keluarga</div>
+      </div>
+      <div className="peng-card" style={{ padding: '4px 0' }}>
+        {/* Kelahiran — per rumah */}
+        <div className="peng-item" style={{ cursor: 'default' }}>
+          <div className="pi-ico" style={{ background: 'var(--blue-l)' }}><Baby size={18} color="var(--blue)" /></div>
+          <div className="pi-body">
+            <div className="pi-t">Dansos Kelahiran</div>
+            <div className="pi-d" style={{ color: kelahiranTerpakai >= 2 ? 'var(--red)' : 'var(--g600)' }}>
+              {kelahiranTerpakai}/2 terpakai seumur hidup · per rumah
+            </div>
+          </div>
+          {kelahiranTerpakai >= 2 && (
+            <span className="pill" style={{ background: 'var(--red-l)', color: 'var(--red)', flexShrink: 0, alignSelf: 'center' }}>Habis</span>
+          )}
+        </div>
+        {/* Sakit — per anggota per tahun */}
+        {allAnggota.map(a => {
+          const sakit = sakitByPerson[a.id] ?? 0
+          return (
+            <div key={`sakit_${a.id}`} className="peng-item" style={{ cursor: 'default' }}>
+              <div className="pi-ico" style={{ background: 'var(--orange-l)' }}><Activity size={18} color="var(--orange)" /></div>
+              <div className="pi-body">
+                <div className="pi-t">
+                  Sakit — {a.namaLengkap}
+                  {a.profileId === profileId && <span className="pill lunas" style={{ fontSize: 10 }}>Saya</span>}
+                </div>
+                <div className="pi-d" style={{ color: sakit >= 2 ? 'var(--red)' : 'var(--gray600)' }}>
+                  {sakit}/2 terpakai tahun {tahun}
+                </div>
+              </div>
+              {sakit >= 2 && (
+                <span className="pill" style={{ background: 'var(--red-l)', color: 'var(--red)', flexShrink: 0, alignSelf: 'center' }}>Habis</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Dokumen Pendaftaran */}
+      <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
+        <div className="t"><FileText size={16} /> Dokumen Pendaftaran</div>
+      </div>
+      {fotoFiles.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
+          {fotoFiles.map((url, i) => {
+            const isImg = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url) || url.startsWith('data:image/')
+            return (
+              <button key={i} onClick={() => setFotoModal(url)}
+                style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
+                {isImg
+                  ? <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <FileText size={24} color="var(--gray400)" />
+                      <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
+                    </div>
+                }
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13, marginBottom: 4 }}>
+          <FileText size={16} color="var(--gray400)" /> Belum ada foto/dokumen terlampir
+        </div>
+      )}
+
+      {/* Foto lightbox */}
+      {fotoModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setFotoModal(null)}>
+          <button onClick={() => setFotoModal(null)}
+            style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={18} />
+          </button>
+          <img src={fotoModal} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} />
         </div>
       )}
 

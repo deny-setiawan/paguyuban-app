@@ -2,8 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, warga, rtGroups, wargaInvites } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { profiles, warga, rtGroups, wargaInvites, danaSosialHistory } from '@/lib/db/schema'
+import { eq, and, count } from 'drizzle-orm'
 import KeluargaClient from './KeluargaClient'
 
 export default async function KeluargaPage() {
@@ -43,6 +43,34 @@ export default async function KeluargaPage() {
       Array.isArray(inv.fotoFiles) ? (inv.fotoFiles as string[]) : []
     )
   }
+
+  // Dana sosial counts from history
+  const tahun = new Date().getFullYear()
+  const wargaIds = allAnggota.map(a => a.id)
+  let kelahiranTerpakai = 0
+  const sakitByPerson: Record<string, number> = {}
+  try {
+    const [kelRes, sakitRes] = await Promise.all([
+      kepalaKk?.noRumah ? db.select({ cnt: count() }).from(danaSosialHistory)
+        .where(and(
+          eq(danaSosialHistory.noRumah, kepalaKk.noRumah),
+          eq(danaSosialHistory.jenis, 'kelahiran'),
+        )) : Promise.resolve([{ cnt: 0 }]),
+      wargaIds.length > 0 ? db.select({ wargaId: danaSosialHistory.wargaId, cnt: count() })
+        .from(danaSosialHistory)
+        .where(and(
+          eq(danaSosialHistory.jenis, 'sakit'),
+          eq(danaSosialHistory.tahun, tahun),
+        ))
+        .groupBy(danaSosialHistory.wargaId) : Promise.resolve([]),
+    ])
+    kelahiranTerpakai = Number(kelRes[0]?.cnt ?? 0)
+    for (const r of sakitRes) {
+      if (r.wargaId && wargaIds.includes(r.wargaId)) {
+        sakitByPerson[r.wargaId] = Number(r.cnt)
+      }
+    }
+  } catch { /* table might not exist yet, fallback to 0 */ }
 
   const kepalaData = kepalaKk ? {
     id: kepalaKk.id,
@@ -90,6 +118,9 @@ export default async function KeluargaPage() {
       phone={profile.phone}
       fotoFiles={fotoFiles}
       rtName={rtName}
+      kelahiranTerpakai={kelahiranTerpakai}
+      sakitByPerson={sakitByPerson}
+      tahun={tahun}
     />
   )
 }

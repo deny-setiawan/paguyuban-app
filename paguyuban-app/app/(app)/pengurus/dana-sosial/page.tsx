@@ -2,10 +2,10 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { warga, iuranSettings, rtGroups } from '@/lib/db/schema'
+import { warga, rtGroups, danaSosialHistory } from '@/lib/db/schema'
 import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { Handshake } from 'lucide-react'
-import { eq } from 'drizzle-orm'
+import { eq, and, count, desc } from 'drizzle-orm'
 import DanaSosialClient from './DanaSosialClient'
 import Link from 'next/link'
 
@@ -22,17 +22,78 @@ export default async function DanaSosialPage() {
     : null
   if (!canAccess('danaSosial', payload.role, menuConfig)) redirect('/pengurus')
 
-  const [wargaList, settings] = await Promise.all([
-    db.select().from(warga)
-      .where(eq(warga.rtGroupId, payload.rtGroupId!))
-      .orderBy(warga.noRumah),
-    db.select().from(iuranSettings)
-      .where(eq(iuranSettings.rtGroupId, payload.rtGroupId!))
-      .limit(1),
+  const rtGroupId = payload.rtGroupId!
+  const tahun = new Date().getFullYear()
+
+  const [allWarga, sakitRaw, kelahiranRaw, historyRaw] = await Promise.all([
+    db.select({
+      id: warga.id, namaLengkap: warga.namaLengkap,
+      noRumah: warga.noRumah, kkStatus: warga.kkStatus,
+    }).from(warga).where(eq(warga.rtGroupId, rtGroupId)).orderBy(warga.noRumah),
+
+    db.select({ wargaId: danaSosialHistory.wargaId, cnt: count() })
+      .from(danaSosialHistory)
+      .where(and(
+        eq(danaSosialHistory.rtGroupId, rtGroupId),
+        eq(danaSosialHistory.jenis, 'sakit'),
+        eq(danaSosialHistory.tahun, tahun),
+      ))
+      .groupBy(danaSosialHistory.wargaId),
+
+    db.select({ noRumah: danaSosialHistory.noRumah, cnt: count() })
+      .from(danaSosialHistory)
+      .where(and(
+        eq(danaSosialHistory.rtGroupId, rtGroupId),
+        eq(danaSosialHistory.jenis, 'kelahiran'),
+      ))
+      .groupBy(danaSosialHistory.noRumah),
+
+    db.select().from(danaSosialHistory)
+      .where(eq(danaSosialHistory.rtGroupId, rtGroupId))
+      .orderBy(desc(danaSosialHistory.createdAt))
+      .limit(60),
   ])
 
-  const kepalaKk = wargaList.filter(w => w.kkStatus === 'kepala_kk')
-  const alokasiSosial = settings[0]?.alokasiSosial ?? 0
+  const sakitMap = new Map(sakitRaw.map(r => [r.wargaId, Number(r.cnt)]))
+  const kelahiranMap = new Map(kelahiranRaw.map(r => [r.noRumah, Number(r.cnt)]))
+
+  // Build KK groups
+  const groupMap = new Map<string, {
+    noRumah: string
+    kepalaId: string | null
+    kepalaNama: string
+    kelahiranTerpakai: number
+    anggota: { id: string; nama: string; kkStatus: string | null; sakitTerpakai: number }[]
+  }>()
+
+  for (const w of allWarga) {
+    const key = w.noRumah || 'Tanpa Nomor'
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        noRumah: key,
+        kepalaId: null,
+        kepalaNama: key,
+        kelahiranTerpakai: kelahiranMap.get(key) ?? 0,
+        anggota: [],
+      })
+    }
+    const g = groupMap.get(key)!
+    g.anggota.push({ id: w.id, nama: w.namaLengkap, kkStatus: w.kkStatus, sakitTerpakai: sakitMap.get(w.id) ?? 0 })
+    if (w.kkStatus === 'kepala_kk') { g.kepalaId = w.id; g.kepalaNama = w.namaLengkap }
+  }
+
+  const kkGroups = Array.from(groupMap.values()).sort((a, b) => a.noRumah.localeCompare(b.noRumah, undefined, { numeric: true }))
+
+  const history = historyRaw.map(h => ({
+    id: h.id,
+    namaWarga: h.namaWarga,
+    noRumah: h.noRumah,
+    jenis: h.jenis,
+    tahun: h.tahun,
+    catatan: h.catatan,
+    createdAt: h.createdAt?.toISOString() ?? new Date().toISOString(),
+    createdByName: h.createdByName,
+  }))
 
   return (
     <>
@@ -40,17 +101,7 @@ export default async function DanaSosialPage() {
         <div className="t"><Handshake size={16} /> Dana Sosial</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
-      <DanaSosialClient
-        items={kepalaKk.map(w => ({
-          id: w.id,
-          nama: w.namaLengkap,
-          noRumah: w.noRumah,
-          statusSosial: w.statusSosial,
-          dansosKelahiranTerpakai: w.dansosKelahiranTerpakai ?? 0,
-          dansosSakitTerpakai: w.dansosSakitTerpakai ?? 0,
-        }))}
-        alokasiSosial={alokasiSosial}
-      />
+      <DanaSosialClient kkGroups={kkGroups} history={history} tahun={tahun} />
     </>
   )
 }

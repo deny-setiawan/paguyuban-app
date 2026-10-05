@@ -29,7 +29,24 @@ export function ensureMigrations(): Promise<void> {
     _migrationPromise = (async () => {
       try {
         await getDb().execute(sql`ALTER TABLE rt_groups ADD COLUMN IF NOT EXISTS menu_config jsonb`)
-      } catch { /* already exists or other non-fatal error */ }
+      } catch { }
+      try {
+        await getDb().execute(sql`
+          CREATE TABLE IF NOT EXISTS dana_sosial_history (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            rt_group_id uuid NOT NULL,
+            warga_id uuid,
+            nama_warga varchar(150),
+            no_rumah varchar(20),
+            jenis varchar(20) NOT NULL,
+            tahun integer NOT NULL,
+            catatan text,
+            created_at timestamp DEFAULT NOW(),
+            created_by_profile_id uuid,
+            created_by_name varchar(150)
+          )
+        `)
+      } catch { }
     })()
   }
   return _migrationPromise

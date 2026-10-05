@@ -274,9 +274,24 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const danaSosialHistory = pgTable('dana_sosial_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  rtGroupId: uuid('rt_group_id').notNull(),
+  wargaId: uuid('warga_id'),
+  namaWarga: varchar('nama_warga', { length: 150 }),
+  noRumah: varchar('no_rumah', { length: 20 }),
+  jenis: varchar('jenis', { length: 20 }).notNull(),
+  tahun: integer('tahun').notNull(),
+  catatan: text('catatan'),
+  createdAt: timestamp('created_at').defaultNow(),
+  createdByProfileId: uuid('created_by_profile_id'),
+  createdByName: varchar('created_by_name', { length: 150 }),
+})
+
 export type Profile = typeof profiles.$inferSelect
 export type RtGroup = typeof rtGroups.$inferSelect
 export type Warga = typeof warga.$inferSelect
+export type DanaSosialHistory = typeof danaSosialHistory.$inferSelect
 export type IuranInvoice = typeof iuranInvoices.$inferSelect
 export type IuranPayment = typeof iuranPayments.$inferSelect
 export type Surat = typeof surat.$inferSelect

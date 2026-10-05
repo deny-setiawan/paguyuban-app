@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { ensureMigrations } from '@/lib/db'
 
 export const metadata: Metadata = {
   title: 'Paguyuban PKR-Pepe',
@@ -16,7 +17,8 @@ export const viewport: Viewport = {
   themeColor: '#1944bd',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  await ensureMigrations()
   return (
     <html lang="id">
       <body>{children}</body>

@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-const ADMIN_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+const ADMIN_ROLES = ['admin']
 
 export async function POST(request: NextRequest) {
   try {

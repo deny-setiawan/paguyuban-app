@@ -5,7 +5,7 @@ import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { normalizePhone } from '@/lib/utils'
 
-const ADMIN_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+const ADMIN_ROLES = ['admin']
 const ADMIN_PASSWORD = process.env.ADMIN_BYPASS_PASSWORD || '1234'
 
 export async function POST(request: NextRequest) {

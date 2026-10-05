@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { wargaInvites } from '@/lib/db/schema'
+import { wargaInvites, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { Users } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import VerifikasiClient from './VerifikasiClient'
@@ -13,7 +14,13 @@ export default async function VerifikasiPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !['ketua', 'sekretaris', 'admin'].includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
+  const menuConfig = payload.rtGroupId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('wargaBaru', payload.role, menuConfig)) redirect('/pengurus')
 
   const list = await db.select().from(wargaInvites)
     .where(eq(wargaInvites.rtGroupId, payload.rtGroupId!))

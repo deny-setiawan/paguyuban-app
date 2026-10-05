@@ -2,13 +2,13 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { warga, profiles, wargaInvites } from '@/lib/db/schema'
+import { warga, profiles, wargaInvites, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { Users } from 'lucide-react'
 import { eq, and, ne } from 'drizzle-orm'
 import DataWargaClient from './DataWargaClient'
 import Link from 'next/link'
 
-const ALLOWED = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
 const KK_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan']
 
 export default async function DataWargaPage() {
@@ -16,9 +16,16 @@ export default async function DataWargaPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !ALLOWED.includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
 
   const rtId = payload.rtGroupId!
+
+  const menuConfig = rtId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, rtId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('dataWarga', payload.role, menuConfig)) redirect('/pengurus')
 
   // All warga records with linked profile info
   const wargaList = await db.select({

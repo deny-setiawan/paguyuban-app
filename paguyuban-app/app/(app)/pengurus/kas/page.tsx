@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { transaksi } from '@/lib/db/schema'
+import { transaksi, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { Wallet } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import KasClient from './KasClient'
@@ -13,7 +14,13 @@ export default async function KasPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !['ketua', 'sekretaris', 'bendahara', 'admin'].includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
+  const menuConfig = payload.rtGroupId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('kasRt', payload.role, menuConfig)) redirect('/pengurus')
 
   const list = await db.select().from(transaksi)
     .where(eq(transaksi.rtGroupId, payload.rtGroupId!))

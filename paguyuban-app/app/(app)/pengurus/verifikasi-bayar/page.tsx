@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { iuranPayments, iuranInvoices, profiles } from '@/lib/db/schema'
+import { iuranPayments, iuranInvoices, profiles, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { CreditCard } from 'lucide-react'
 import { and, eq, desc } from 'drizzle-orm'
 import VerifikasiBayarClient from './VerifikasiBayarClient'
@@ -14,7 +15,13 @@ export default async function VerifikasiBayarPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !['bendahara', 'admin', 'ketua'].includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
+  const menuConfig = payload.rtGroupId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('verifBayar', payload.role, menuConfig)) redirect('/pengurus')
 
   const list = await db.select({
     payment: iuranPayments,

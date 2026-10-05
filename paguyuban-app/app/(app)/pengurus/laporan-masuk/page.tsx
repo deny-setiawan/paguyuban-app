@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { laporanWarga, profiles } from '@/lib/db/schema'
+import { laporanWarga, profiles, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { FileText } from 'lucide-react'
 import { and, eq, inArray, desc } from 'drizzle-orm'
 import LaporanMasukClient from './LaporanMasukClient'
@@ -13,7 +14,13 @@ export default async function LaporanMasukPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !['ketua', 'sekretaris', 'admin'].includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
+  const menuConfig = payload.rtGroupId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('laporan', payload.role, menuConfig)) redirect('/pengurus')
 
   const list = await db.select({
     laporan: laporanWarga,

@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { warga, iuranSettings } from '@/lib/db/schema'
+import { warga, iuranSettings, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { Handshake } from 'lucide-react'
 import { eq } from 'drizzle-orm'
 import DanaSosialClient from './DanaSosialClient'
@@ -13,7 +14,13 @@ export default async function DanaSosialPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !['ketua', 'bendahara', 'admin'].includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
+  const menuConfig = payload.rtGroupId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('danaSosial', payload.role, menuConfig)) redirect('/pengurus')
 
   const [wargaList, settings] = await Promise.all([
     db.select().from(warga)

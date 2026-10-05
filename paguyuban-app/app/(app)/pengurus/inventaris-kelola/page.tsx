@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { inventaris, inventarisSewa } from '@/lib/db/schema'
+import { inventaris, inventarisSewa, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { Package } from 'lucide-react'
 import { eq, desc } from 'drizzle-orm'
 import InventarisKelolaClient from './InventarisKelolaClient'
@@ -13,7 +14,13 @@ export default async function InventarisKelolaPage() {
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
   const payload = await verifyJwt(token)
-  if (!payload || !['ketua', 'admin'].includes(payload.role)) redirect('/pengurus')
+  if (!payload) redirect('/')
+  const menuConfig = payload.rtGroupId
+    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+        .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+    : null
+  if (!canAccess('inventaris', payload.role, menuConfig)) redirect('/pengurus')
 
   const [items, activeSewa] = await Promise.all([
     db.select().from(inventaris)

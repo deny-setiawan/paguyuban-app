@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, iuranInvoices, iuranSettings } from '@/lib/db/schema'
+import { profiles, iuranInvoices, iuranSettings, rtGroups } from '@/lib/db/schema'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { eq, and, desc } from 'drizzle-orm'
 import { CreditCard } from 'lucide-react'
 import Link from 'next/link'
@@ -15,10 +16,13 @@ export default async function TagihanPage() {
   const payload = await verifyJwt(token)
   if (!payload) redirect('/')
 
-  if (!['bendahara', 'admin', 'ketua'].includes(payload.role)) redirect('/pengurus')
-
   const rtGroupId = payload.rtGroupId
   if (!rtGroupId) redirect('/pengurus')
+
+  const menuConfig = await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+    .where(eq(rtGroups.id, rtGroupId)).limit(1)
+    .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
+  if (!canAccess('tagihan', payload.role, menuConfig)) redirect('/pengurus')
 
   let nominalDefault = 0
   try {

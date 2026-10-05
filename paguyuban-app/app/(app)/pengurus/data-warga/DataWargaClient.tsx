@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle } from 'lucide-react'
+import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown } from 'lucide-react'
+import type { KkExportData } from '@/lib/pdf/warga-pdf'
 
 interface WargaItem {
   id: string
@@ -16,6 +17,7 @@ interface WargaItem {
   tanggalLahir: string | null
   agama: string | null
   statusPerkawinan: string | null
+  pekerjaan: string | null
   statusHunian: string | null
   tanggalMenempati: string | null
   statusSosial: string | null
@@ -41,7 +43,35 @@ function agamaLabel(a: string | null) {
   return a ? (AGAMA_LABEL[a] || a) : '—'
 }
 
-export default function DataWargaClient({ items }: { items: WargaItem[] }) {
+function kkToExportData(group: KKGroup): KkExportData {
+  const kepala = group.kepala
+  return {
+    noRumah: group.noRumah,
+    kepala: kepala ? {
+      namaLengkap: kepala.namaLengkap,
+      phone: kepala.phone,
+      agama: kepala.agama,
+      jenisKelamin: kepala.jenisKelamin,
+      statusPerkawinan: kepala.statusPerkawinan,
+      pekerjaan: kepala.pekerjaan,
+      tanggalLahir: kepala.tanggalLahir,
+      statusHunian: kepala.statusHunian,
+      tanggalMenempati: kepala.tanggalMenempati,
+      nik: kepala.nik,
+      noKk: kepala.noKk,
+    } : null,
+    anggota: group.anggota.map(a => ({
+      namaLengkap: a.namaLengkap,
+      jenisKelamin: a.jenisKelamin,
+      agama: a.agama,
+      hubunganKeluarga: a.hubunganKeluarga,
+      kkStatus: a.kkStatus,
+    })),
+    fotoFiles: group.all.flatMap(w => w.fotoFiles ?? []).filter((v, i, arr) => arr.indexOf(v) === i),
+  }
+}
+
+export default function DataWargaClient({ items, rtName }: { items: WargaItem[]; rtName: string }) {
   const [list, setList] = useState(items)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'warga' | 'kk'>('warga')
@@ -51,6 +81,38 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; noRumah: string; nama: string } | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [fotoModal, setFotoModal] = useState<string | null>(null)
+  const [exportingKk, setExportingKk] = useState<string | null>(null)
+  const [exportingAll, setExportingAll] = useState(false)
+
+  async function handleExportKk(group: KKGroup) {
+    setExportingKk(group.noRumah)
+    try {
+      const { exportKkPdf } = await import('@/lib/pdf/warga-pdf')
+      await exportKkPdf(kkToExportData(group), rtName)
+    } finally {
+      setExportingKk(null)
+    }
+  }
+
+  async function handleExportAll() {
+    setExportingAll(true)
+    try {
+      const { exportAllKkPdf } = await import('@/lib/pdf/warga-pdf')
+      // compute kkGroups from current list (avoids TDZ on kkGroups const)
+      const map: Record<string, KKGroup> = {}
+      for (const w of list) {
+        const key = w.noRumah || 'Tanpa Nomor'
+        if (!map[key]) map[key] = { noRumah: key, kepala: null, anggota: [], all: [] }
+        map[key].all.push(w)
+        if (w.kkStatus === 'kepala_kk') map[key].kepala = w
+        else map[key].anggota.push(w)
+      }
+      const allKk = Object.values(map).sort((a, b) => a.noRumah.localeCompare(b.noRumah))
+      await exportAllKkPdf(allKk.map(kkToExportData), rtName)
+    } finally {
+      setExportingAll(false)
+    }
+  }
 
   function openDetail(item: WargaItem) {
     setDetail(item)
@@ -249,7 +311,7 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
       <input className="inp" value={search} onChange={e => setSearch(e.target.value)}
         placeholder="Cari nama, no. rumah, atau HP..." style={{ marginBottom: 12 }} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         {(['warga', 'kk'] as const).map(t => (
           <button key={t}
             onClick={() => setTab(t)}
@@ -264,6 +326,15 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
           </button>
         ))}
       </div>
+
+      {tab === 'warga' && (
+        <button
+          onClick={handleExportAll}
+          disabled={exportingAll || list.length === 0}
+          style={{ width: '100%', marginBottom: 16, height: 40, borderRadius: 12, border: '1.5px solid var(--g600)', background: 'white', color: 'var(--g600)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: exportingAll ? 0.7 : 1 }}>
+          <FileDown size={15} /> {exportingAll ? 'Membuat PDF...' : `Export All PDF (${kkGroups.length} KK)`}
+        </button>
+      )}
 
       {/* Tab: Data Warga */}
       {tab === 'warga' && (
@@ -323,12 +394,22 @@ export default function DataWargaClient({ items }: { items: WargaItem[] }) {
                     No. {group.noRumah} · {group.all.length} jiwa
                     {hasFoto && <span style={{ marginLeft: 6, background: 'var(--blue-l)', color: 'var(--blue)', padding: '1px 6px', borderRadius: 6, fontSize: 10 }}>Ada Foto</span>}
                   </div>
-                  {kepala && kepala.source === 'warga' && (
-                    <button className="btn-ghost" style={{ fontSize: 11, color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-                      onClick={() => setDeleteTarget({ id: kepala.id, noRumah: group.noRumah, nama: kepala.namaLengkap })}>
-                      <Trash2 size={11} /> Hapus KK
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <button
+                      className="btn-ghost"
+                      style={{ fontSize: 11, color: 'var(--g600)', borderColor: 'var(--g300)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                      onClick={() => handleExportKk(group)}
+                      disabled={exportingKk === group.noRumah}
+                      title="Export PDF">
+                      <FileDown size={11} /> {exportingKk === group.noRumah ? '...' : 'PDF'}
                     </button>
-                  )}
+                    {kepala && kepala.source === 'warga' && (
+                      <button className="btn-ghost" style={{ fontSize: 11, color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => setDeleteTarget({ id: kepala.id, noRumah: group.noRumah, nama: kepala.namaLengkap })}>
+                        <Trash2 size={11} /> Hapus KK
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="peng-card">
                   {group.all.map(w => (

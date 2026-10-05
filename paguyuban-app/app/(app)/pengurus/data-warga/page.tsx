@@ -20,11 +20,10 @@ export default async function DataWargaPage() {
 
   const rtId = payload.rtGroupId!
 
-  const menuConfig = rtId
-    ? await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
-        .where(eq(rtGroups.id, rtId)).limit(1)
-        .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
-    : null
+  const [rtRow] = await db.select({ menuConfig: rtGroups.menuConfig, namaRt: rtGroups.namaRt })
+    .from(rtGroups).where(eq(rtGroups.id, rtId)).limit(1)
+  const menuConfig = (rtRow?.menuConfig as MenuConfig) ?? null
+  const rtName = rtRow?.namaRt || 'Paguyuban PKR-Pepe'
   if (!canAccess('dataWarga', payload.role, menuConfig)) redirect('/pengurus')
 
   // All warga records with linked profile info
@@ -79,6 +78,7 @@ export default async function DataWargaPage() {
       statusPerkawinan: r.warga.statusPerkawinan,
       statusHunian: r.warga.statusHunian,
       tanggalMenempati: r.warga.tanggalMenempati,
+      pekerjaan: r.warga.pekerjaan,
       statusSosial: r.warga.statusSosial,
       status: r.warga.status,
       phone: r.phone,
@@ -103,6 +103,7 @@ export default async function DataWargaPage() {
       statusPerkawinan: null,
       statusHunian: null,
       tanggalMenempati: null,
+      pekerjaan: null,
       statusSosial: p.statusSosial,
       status: 'aktif' as const,
       phone: p.phone,
@@ -118,7 +119,7 @@ export default async function DataWargaPage() {
         <div className="t"><Users size={16} /> Data Warga ({items.length})</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', fontWeight: 700 }}>← Kembali</Link>
       </div>
-      <DataWargaClient items={items} />
+      <DataWargaClient items={items} rtName={rtName} />
     </>
   )
 }

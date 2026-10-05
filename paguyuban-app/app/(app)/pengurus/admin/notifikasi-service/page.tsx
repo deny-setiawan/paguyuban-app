@@ -10,14 +10,18 @@ export default async function NotifikasiServicePage() {
   const payload = await verifyJwt(token)
   if (!payload || payload.role !== 'admin') redirect('/pengurus')
 
-  const waServiceUrl = process.env.WA_OTP_SERVICE_URL || null
+  let waServiceUrl = process.env.WA_OTP_SERVICE_URL || null
+  if (waServiceUrl) {
+    if (!waServiceUrl.startsWith('http://') && !waServiceUrl.startsWith('https://')) waServiceUrl = `https://${waServiceUrl}`
+    waServiceUrl = waServiceUrl.replace(/\/$/, '')
+  }
 
   let initialStatus: 'connected' | 'connecting' | 'disconnected' | 'not_configured' | 'error' = 'not_configured'
   let initialPhone: string | null = null
 
   if (waServiceUrl) {
     try {
-      const res = await fetch(`${waServiceUrl.replace(/\/$/, '')}/health`, {
+      const res = await fetch(`${waServiceUrl}/health`, {
         signal: AbortSignal.timeout(5000),
         cache: 'no-store',
       })

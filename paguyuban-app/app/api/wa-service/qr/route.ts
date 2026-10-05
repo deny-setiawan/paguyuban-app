@@ -8,11 +8,13 @@ export async function GET() {
   const payload = await verifyJwt(token)
   if (!payload || payload.role !== 'admin') return new Response('Forbidden', { status: 403 })
 
-  const url = process.env.WA_OTP_SERVICE_URL
+  let url = process.env.WA_OTP_SERVICE_URL
   if (!url) return new Response('Not configured', { status: 404 })
+  if (!url.startsWith('http://') && !url.startsWith('https://')) url = `https://${url}`
+  url = url.replace(/\/$/, '')
 
   try {
-    const res = await fetch(`${url.replace(/\/$/, '')}/qr.png`, {
+    const res = await fetch(`${url}/qr.png`, {
       signal: AbortSignal.timeout(5000),
       cache: 'no-store',
     })

@@ -9,16 +9,18 @@ export async function POST() {
   const payload = await verifyJwt(token)
   if (!payload || payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const url = process.env.WA_OTP_SERVICE_URL
+  let url = process.env.WA_OTP_SERVICE_URL
   if (!url) return NextResponse.json({ error: 'not_configured' }, { status: 404 })
+  if (!url.startsWith('http://') && !url.startsWith('https://')) url = `https://${url}`
+  url = url.replace(/\/$/, '')
 
   try {
-    const res = await fetch(`${url.replace(/\/$/, '')}/reconnect`, {
+    await fetch(`${url}/reconnect`, {
       method: 'POST',
+      redirect: 'manual',
       signal: AbortSignal.timeout(10000),
     })
-    const data = await res.json()
-    return NextResponse.json(data)
+    return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Failed to reconnect' }, { status: 502 })
   }

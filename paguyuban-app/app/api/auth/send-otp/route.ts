@@ -18,17 +18,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Format nomor HP tidak valid' }, { status: 400 })
     }
 
-    // Admin bypass: jika nomor milik pengurus, skip OTP
-    const [profile] = await db.select({ role: profiles.role, phone: profiles.phone })
+    // Cek profil di DB
+    const [profile] = await db.select({ role: profiles.role, phone: profiles.phone, isActive: profiles.isActive })
       .from(profiles).where(eq(profiles.phone, normalized)).limit(1)
     console.log('[send-otp] normalized:', normalized, '| profile found:', profile ?? 'NOT FOUND')
+
+    // Admin bypass: role admin skip OTP (cek DB atau env ADMIN_PHONE)
     const isAdmin = (profile && ADMIN_ROLES.includes(profile.role)) ||
       (process.env.ADMIN_PHONE || '').split(',').map(s => s.trim()).filter(Boolean).includes(normalized)
 
     if (isAdmin) {
       console.log('[send-otp] adminBypass granted for role:', profile?.role ?? 'via ADMIN_PHONE env')
       const res = NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
-      // Cookie pendek (5 menit) agar OTP page bisa deteksi admin bypass
       res.cookies.set('admin_bp', normalized, {
         httpOnly: false,
         sameSite: 'lax',
@@ -36,6 +37,14 @@ export async function POST(request: NextRequest) {
         path: '/',
       })
       return res
+    }
+
+    // Cek apakah nomor terdaftar dan aktif
+    if (!profile || !profile.isActive) {
+      return NextResponse.json(
+        { error: 'Nomor HP yang Anda masukkan belum terdaftar atau belum diaktifkan. Hubungi ketua paguyuban/pengurus.' },
+        { status: 404 }
+      )
     }
 
     const otp = generateOtp()

@@ -22,16 +22,20 @@ export async function POST(request: NextRequest) {
     const [profile] = await db.select({ role: profiles.role, phone: profiles.phone })
       .from(profiles).where(eq(profiles.phone, normalized)).limit(1)
     console.log('[send-otp] normalized:', normalized, '| profile found:', profile ?? 'NOT FOUND')
-    if (profile && ADMIN_ROLES.includes(profile.role)) {
-      console.log('[send-otp] adminBypass granted for role:', profile.role)
-      return NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
-    }
+    const isAdmin = (profile && ADMIN_ROLES.includes(profile.role)) ||
+      (process.env.ADMIN_PHONE || '').split(',').map(s => s.trim()).filter(Boolean).includes(normalized)
 
-    // Fallback: env var ADMIN_PHONE (koma-pisah) untuk bypass tanpa profil di DB
-    const adminPhones = (process.env.ADMIN_PHONE || '').split(',').map(s => s.trim()).filter(Boolean)
-    if (adminPhones.includes(normalized)) {
-      console.log('[send-otp] adminBypass granted via ADMIN_PHONE env')
-      return NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
+    if (isAdmin) {
+      console.log('[send-otp] adminBypass granted for role:', profile?.role ?? 'via ADMIN_PHONE env')
+      const res = NextResponse.json({ ok: true, phone: normalized, adminBypass: true })
+      // Cookie pendek (5 menit) agar OTP page bisa deteksi admin bypass
+      res.cookies.set('admin_bp', normalized, {
+        httpOnly: false,
+        sameSite: 'lax',
+        maxAge: 300,
+        path: '/',
+      })
+      return res
     }
 
     const otp = generateOtp()

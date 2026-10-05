@@ -214,14 +214,6 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
             </>
           )}
 
-          {/* Dana Sosial */}
-          <div className="sec-h" style={{ margin: '20px 0 12px' }}>
-            <div className="t"><ClipboardList size={16} /> Dana Sosial Saya</div>
-          </div>
-          <div className="peng-card" style={{ padding: '4px 14px' }}>
-            <div className="kv"><span className="k">Dansos Kelahiran Terpakai</span><span className="v">{warga.dansosKelahiranTerpakai ?? 0}×</span></div>
-            <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Dansos Sakit Terpakai</span><span className="v">{warga.dansosSakitTerpakai ?? 0}×</span></div>
-          </div>
         </>
       )}
 

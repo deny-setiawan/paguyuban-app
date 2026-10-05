@@ -56,6 +56,7 @@ export const rtGroups = pgTable('rt_groups', {
   level: varchar('level', { length: 10 }).default('rt'),
   pemutakhiranActive: boolean('pemutakhiran_active').default(false),
   pemutakhiranTahun: integer('pemutakhiran_tahun'),
+  menuConfig: jsonb('menu_config'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

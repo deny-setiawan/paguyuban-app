@@ -4,6 +4,7 @@ import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles, rtGroups, wargaInvites, iuranPayments, surat, laporanWarga, transaksi, warga, inventarisSewa } from '@/lib/db/schema'
 import { eq, and, count, desc } from 'drizzle-orm'
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { rupiah } from '@/lib/utils'
 import Link from 'next/link'
 import {
@@ -40,9 +41,11 @@ export default async function PengurusPage() {
   if (!profile) redirect('/')
 
   let rt = null
+  let menuConfig: MenuConfig | null = null
   if (profile.rtGroupId) {
     const [rtData] = await db.select().from(rtGroups).where(eq(rtGroups.id, profile.rtGroupId)).limit(1)
     rt = rtData ?? null
+    menuConfig = (rt?.menuConfig as MenuConfig) ?? null
   }
 
   const rtId = profile.rtGroupId
@@ -81,14 +84,14 @@ export default async function PengurusPage() {
   const role = payload.role
   const roleInfo = ROLE_INFO[role] || { label: role, Icon: UserCheck }
   const { label: roleLabel, Icon: RoleIcon } = roleInfo
-  const totalPending = stats.pendingInvite + stats.pendingPayment + stats.pendingSurat + stats.pendingLaporan
 
   const isAdmin = role === 'admin'
-  const isKetua = role === 'ketua' || role === 'wakil_ketua'
-  const isBendahara = role === 'bendahara'
-  const isSekretaris = role === 'sekretaris'
-  const isKeuangan = isBendahara || isKetua || isAdmin
-  const isFullAccess = isKetua || isAdmin
+
+  const totalPending =
+    (canAccess('wargaBaru', role, menuConfig) ? stats.pendingInvite : 0) +
+    (canAccess('verifBayar', role, menuConfig) ? stats.pendingPayment : 0) +
+    (canAccess('prosesSurat', role, menuConfig) ? stats.pendingSurat : 0) +
+    (canAccess('laporan', role, menuConfig) ? stats.pendingLaporan : 0)
 
   return (
     <>
@@ -131,7 +134,7 @@ export default async function PengurusPage() {
             <div className="t"><Clock size={16} /> Perlu Ditindaklanjuti</div>
           </div>
           <div className="peng-card">
-            {stats.pendingInvite > 0 && (
+            {canAccess('wargaBaru', role, menuConfig) && stats.pendingInvite > 0 && (
               <Link href="/pengurus/verifikasi">
                 <div className="peng-item">
                   <div className="pi-ico" style={{ background: 'var(--gold-l)' }}><Users size={18} color="var(--gold)" /></div>
@@ -142,7 +145,7 @@ export default async function PengurusPage() {
                 </div>
               </Link>
             )}
-            {stats.pendingPayment > 0 && (
+            {canAccess('verifBayar', role, menuConfig) && stats.pendingPayment > 0 && (
               <Link href="/pengurus/verifikasi-bayar">
                 <div className="peng-item">
                   <div className="pi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={18} color="var(--g600)" /></div>
@@ -153,7 +156,7 @@ export default async function PengurusPage() {
                 </div>
               </Link>
             )}
-            {stats.pendingSurat > 0 && (
+            {canAccess('prosesSurat', role, menuConfig) && stats.pendingSurat > 0 && (
               <Link href="/pengurus/surat-antrean">
                 <div className="peng-item">
                   <div className="pi-ico" style={{ background: 'var(--blue-l)' }}><Mail size={18} color="var(--blue)" /></div>
@@ -164,7 +167,7 @@ export default async function PengurusPage() {
                 </div>
               </Link>
             )}
-            {stats.pendingLaporan > 0 && (
+            {canAccess('laporan', role, menuConfig) && stats.pendingLaporan > 0 && (
               <Link href="/pengurus/laporan-masuk">
                 <div className="peng-item">
                   <div className="pi-ico" style={{ background: 'var(--purple-l)' }}><FileText size={18} color="var(--purple)" /></div>
@@ -184,7 +187,7 @@ export default async function PengurusPage() {
         <div className="t"><Shield size={16} /> Menu Pengurus</div>
       </div>
       <div className="menu-grid">
-        {!isBendahara && (
+        {canAccess('wargaBaru', role, menuConfig) && (
           <Link href="/pengurus/verifikasi">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--gold-l)', position: 'relative' }}>
@@ -195,7 +198,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(isFullAccess || isSekretaris) && (
+        {canAccess('prosesSurat', role, menuConfig) && (
           <Link href="/pengurus/surat-antrean">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--blue-l)', position: 'relative' }}>
@@ -206,7 +209,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {isKeuangan && (
+        {canAccess('kasRt', role, menuConfig) && (
           <Link href="/pengurus/kas">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--g50)' }}><Wallet size={22} color="var(--g600)" /></div>
@@ -214,7 +217,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {isKeuangan && (
+        {canAccess('verifBayar', role, menuConfig) && (
           <Link href="/pengurus/verifikasi-bayar">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--teal-l)', position: 'relative' }}>
@@ -225,7 +228,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {isKeuangan && (
+        {canAccess('tagihan', role, menuConfig) && (
           <Link href="/pengurus/tagihan">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--g50)' }}><CreditCard size={22} color="var(--g600)" /></div>
@@ -233,7 +236,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(isFullAccess || isSekretaris) && (
+        {canAccess('laporan', role, menuConfig) && (
           <Link href="/pengurus/laporan-masuk">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--purple-l)', position: 'relative' }}>
@@ -244,7 +247,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {!isBendahara && (
+        {canAccess('dataWarga', role, menuConfig) && (
           <Link href="/pengurus/data-warga">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--gray100)' }}><ClipboardList size={22} color="var(--gray500)" /></div>
@@ -252,7 +255,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(isFullAccess || isSekretaris) && (
+        {canAccess('pengumuman', role, menuConfig) && (
           <Link href="/pengurus/pengumuman-kelola">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--orange-l)' }}><Megaphone size={22} color="var(--orange)" /></div>
@@ -260,7 +263,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {(isFullAccess) && (
+        {canAccess('inventaris', role, menuConfig) && (
           <Link href="/pengurus/inventaris-kelola">
             <div className="menu-item" style={{ position: 'relative' }}>
               <div className="mi-ico" style={{ background: 'var(--gold-l)' }}><Package size={22} color="var(--gold)" /></div>
@@ -273,7 +276,7 @@ export default async function PengurusPage() {
             </div>
           </Link>
         )}
-        {isKeuangan && (
+        {canAccess('danaSosial', role, menuConfig) && (
           <Link href="/pengurus/dana-sosial">
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--teal-l)' }}><Handshake size={22} color="var(--teal)" /></div>

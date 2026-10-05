@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
-import { db } from '@/lib/db'
+import { db, ensureMigrations } from '@/lib/db'
 import { profiles, rtGroups } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import Shell from '@/components/layout/Shell'
@@ -16,6 +16,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const payload = await verifyJwt(token)
   if (!payload) redirect('/')
+
+  await ensureMigrations()
 
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, payload.sub)).limit(1)
   if (!profile) redirect('/')

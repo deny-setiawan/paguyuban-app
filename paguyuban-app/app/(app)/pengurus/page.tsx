@@ -11,7 +11,7 @@ import {
   Crown, ClipboardList, Wallet, Shield, Users, Mail, CreditCard,
   FileText, Package, Settings, User, Megaphone, BarChart2,
   Clock, CheckCircle, Handshake, UserCheck, Globe, Lock, Wrench,
-  Home, Bell, Car, Zap,
+  Home, Bell, Car, Zap, Wifi,
 } from 'lucide-react'
 
 const ALL_PENGURUS = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
@@ -297,6 +297,14 @@ export default async function PengurusPage() {
             <div className="menu-item">
               <div className="mi-ico" style={{ background: 'var(--purple-l)' }}><User size={22} color="var(--purple)" /></div>
               <div className="mi-lbl">Kelola Akun</div>
+            </div>
+          </Link>
+        )}
+        {isAdmin && (
+          <Link href="/pengurus/admin/notifikasi-service">
+            <div className="menu-item">
+              <div className="mi-ico" style={{ background: 'var(--teal-l)' }}><Wifi size={22} color="var(--teal)" /></div>
+              <div className="mi-lbl">Notifikasi Service</div>
             </div>
           </Link>
         )}

@@ -2,8 +2,10 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { wargaInvites, warga, profiles } from '@/lib/db/schema'
+import { wargaInvites, warga, profiles, rtGroups } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { sendWhatsAppMessage, phoneToJid, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-client'
+import type { WaNotifConfig } from '@/lib/wa-client'
 
 const APPROVE_ROLES = ['ketua', 'admin']
 
@@ -103,6 +105,24 @@ export async function PATCH(req: NextRequest) {
           }
         }
       }
+    }
+
+    // WA notification to warga
+    if (invite.profileId) {
+      try {
+        const [profData] = await db.select({ phone: profiles.phone }).from(profiles)
+          .where(eq(profiles.id, invite.profileId)).limit(1)
+        if (profData?.phone) {
+          const [rtData] = await db.select({ namaRt: rtGroups.namaRt, waNotifConfig: rtGroups.waNotifConfig })
+            .from(rtGroups).where(eq(rtGroups.id, invite.rtGroupId)).limit(1)
+          const cfg = { ...DEFAULT_NOTIF_CONFIG, ...(rtData?.waNotifConfig as WaNotifConfig | null ?? {}) }
+          if (cfg.wargaDiterima !== false) {
+            const rtName = rtData?.namaRt || 'RT'
+            const msg = `Halo *${invite.nama}*! 👋\n\nPendaftaran Data Warga Anda sudah *diterima* oleh pengurus *${rtName}*.\n\nAnda bisa login menggunakan nomor yang terdaftar di aplikasi:\nhttps://app.paguyubanpkrpepe.my.id/\n\n✅ Selamat bergabung!`
+            sendWhatsAppMessage(phoneToJid(profData.phone), msg).catch(() => {})
+          }
+        }
+      } catch { /* jangan ganggu response utama */ }
     }
 
     return NextResponse.json({ ok: true, action: 'approved' })

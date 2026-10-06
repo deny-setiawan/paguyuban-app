@@ -31,6 +31,9 @@ export function ensureMigrations(): Promise<void> {
         await getDb().execute(sql`ALTER TABLE rt_groups ADD COLUMN IF NOT EXISTS menu_config jsonb`)
       } catch { }
       try {
+        await getDb().execute(sql`ALTER TABLE rt_groups ADD COLUMN IF NOT EXISTS wa_notif_config jsonb`)
+      } catch { }
+      try {
         await getDb().execute(sql`
           CREATE TABLE IF NOT EXISTS dana_sosial_history (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

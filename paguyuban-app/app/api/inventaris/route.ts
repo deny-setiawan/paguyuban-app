@@ -99,6 +99,22 @@ export async function POST(req: NextRequest) {
         .set({ stok: (item.stok || 1) - jumlah })
         .where(eq(inventaris.id, inventarisId))
 
+      // WA notification to penyewa
+      if (penyewaHp) {
+        try {
+          const { DEFAULT_NOTIF_CONFIG, sendWhatsAppMessage, phoneToJid } = await import('@/lib/wa-client')
+          const [rtData] = await db.select({ waNotifConfig: rtGroups.waNotifConfig })
+            .from(rtGroups).where(eq(rtGroups.id, item.rtGroupId)).limit(1)
+          const cfg = { ...DEFAULT_NOTIF_CONFIG, ...(rtData?.waNotifConfig as Record<string, unknown> ?? {}) }
+          if (cfg.inventarisSewa !== false) {
+            const totalStr = total > 0 ? `\nTotal: *Rp ${total.toLocaleString('id-ID')}*` : ''
+            const kembaliStr = tglKembaliRencana ? `\nRencana kembali: ${tglKembaliRencana}` : ''
+            const msg = `Halo *${penyewaNama}*! 📦\n\nPeminjaman *${item.nama}* (${jumlah}x) sudah tercatat dan akan segera diproses.${totalStr}\nTgl sewa: ${tglSewa}${kembaliStr}\n\nTerima kasih telah menggunakan fasilitas RT! 🙏`
+            sendWhatsAppMessage(phoneToJid(penyewaHp), msg).catch(() => {})
+          }
+        } catch { /* jangan ganggu response utama */ }
+      }
+
       return NextResponse.json({ ok: true, sewaId: sewa.id, total })
     }
 

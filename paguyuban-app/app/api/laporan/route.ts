@@ -2,8 +2,10 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { laporanWarga, profiles } from '@/lib/db/schema'
+import { laporanWarga, profiles, rtGroups } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { sendWhatsAppMessage, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-client'
+import type { WaNotifConfig } from '@/lib/wa-client'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -48,6 +50,17 @@ export async function POST(req: NextRequest) {
     fotoUrl: fotoUrl || null,
     status: 'menunggu',
   }).returning()
+
+  // Group WA notification for new laporan
+  try {
+    const [rtData] = await db.select({ waNotifConfig: rtGroups.waNotifConfig })
+      .from(rtGroups).where(eq(rtGroups.id, profile.rtGroupId)).limit(1)
+    const cfg = { ...DEFAULT_NOTIF_CONFIG, ...(rtData?.waNotifConfig as WaNotifConfig | null ?? {}) }
+    if (cfg.groupLaporan) {
+      const msg = `📋 *Laporan Baru*\n\nKategori: ${kategori}\nJudul: *${judul}*\nDari: ${profile.fullName || profile.phone}\n\nSilakan cek di aplikasi pengurus.`
+      sendWhatsAppMessage(cfg.groupLaporan, msg).catch(() => {})
+    }
+  } catch { /* jangan ganggu response utama */ }
 
   return NextResponse.json({ ok: true, laporan })
 }

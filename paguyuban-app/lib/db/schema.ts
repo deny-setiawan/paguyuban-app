@@ -57,6 +57,7 @@ export const rtGroups = pgTable('rt_groups', {
   pemutakhiranActive: boolean('pemutakhiran_active').default(false),
   pemutakhiranTahun: integer('pemutakhiran_tahun'),
   menuConfig: jsonb('menu_config'),
+  waNotifConfig: jsonb('wa_notif_config'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

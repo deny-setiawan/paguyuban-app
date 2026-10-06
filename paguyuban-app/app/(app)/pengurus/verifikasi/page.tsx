@@ -22,10 +22,21 @@ export default async function VerifikasiPage() {
     : null
   if (!canAccess('wargaBaru', payload.role, menuConfig)) redirect('/pengurus')
 
-  const list = await db.select().from(wargaInvites)
+  // Exclude fotoFiles (bisa berupa base64 besar) — dimuat lazy saat detail dibuka
+  const list = await db.select({
+    id: wargaInvites.id,
+    nama: wargaInvites.nama,
+    noRumah: wargaInvites.noRumah,
+    status: wargaInvites.status,
+    jenis: wargaInvites.jenis,
+    profileId: wargaInvites.profileId,
+    dataKk: wargaInvites.dataKk,
+    anggota: wargaInvites.anggota,
+    createdAt: wargaInvites.createdAt,
+  }).from(wargaInvites)
     .where(eq(wargaInvites.rtGroupId, payload.rtGroupId!))
     .orderBy(desc(wargaInvites.createdAt))
-    .limit(50)
+    .limit(100)
 
   const canApprove = ['ketua', 'admin'].includes(payload.role)
 
@@ -43,7 +54,6 @@ export default async function VerifikasiPage() {
         jenis: i.jenis || 'warga_baru',
         dataKk: i.dataKk as Record<string, string> | null,
         anggota: i.anggota as Array<Record<string, string>> | null,
-        fotoFiles: i.fotoFiles as string[] | null,
         createdAt: i.createdAt.toISOString(),
       }))} canApprove={canApprove} />
     </>

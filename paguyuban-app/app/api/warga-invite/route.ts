@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { wargaInvites, warga, profiles, rtGroups } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and } from 'drizzle-orm'
 import { sendWhatsAppMessage, phoneToJid, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-client'
 import type { WaNotifConfig } from '@/lib/wa-client'
 
 const APPROVE_ROLES = ['ketua', 'admin']
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const cookieStore = await cookies()
   const token = cookieStore.get('session')?.value
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,6 +18,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   if (!payload.rtGroupId) return NextResponse.json({ error: 'No RT' }, { status: 400 })
+
+  // ?id=xxx → return single invite with full data (termasuk fotoFiles)
+  const id = req.nextUrl.searchParams.get('id')
+  if (id) {
+    const [invite] = await db.select().from(wargaInvites)
+      .where(and(eq(wargaInvites.id, id), eq(wargaInvites.rtGroupId, payload.rtGroupId)))
+      .limit(1)
+    if (!invite) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ invite })
+  }
 
   const list = await db.select().from(wargaInvites)
     .where(eq(wargaInvites.rtGroupId, payload.rtGroupId))

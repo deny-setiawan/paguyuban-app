@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Wifi, WifiOff, Loader2, RefreshCw, CheckCircle, AlertTriangle,
-  MessageSquare, Smartphone, Bell, Users, Package, FileText, UserCheck, Search,
+  MessageSquare, Smartphone, Bell, Users, Package, FileText, UserCheck, Search, UserPlus,
 } from 'lucide-react'
 import type { WaNotifConfig } from '@/lib/wa-client'
 
@@ -19,7 +19,8 @@ interface Props {
 }
 
 const NOTIF_ITEMS: { key: keyof Omit<WaNotifConfig, 'groupLaporan'>; label: string; desc: string; icon: React.ReactNode }[] = [
-  { key: 'wargaDiterima', label: 'Pendaftaran Diterima', desc: 'Notif ke warga saat pengajuannya disetujui pengurus', icon: <UserCheck size={18} color="var(--g600)" /> },
+  { key: 'dataDiterima', label: 'Informasi Data Diterima', desc: 'Notif ke warga saat data pendaftaran/pemutakhiran berhasil dikirim', icon: <UserPlus size={18} color="var(--blue)" /> },
+  { key: 'wargaDiterima', label: 'Pendaftaran Disetujui', desc: 'Notif ke warga saat pengajuannya disetujui pengurus', icon: <UserCheck size={18} color="var(--g600)" /> },
   { key: 'laporanUpdate', label: 'Update Status Laporan', desc: 'Notif ke pelapor saat laporannya diproses atau selesai', icon: <FileText size={18} color="var(--blue)" /> },
   { key: 'suratUpdate', label: 'Update Status Surat', desc: 'Notif ke pemohon saat surat diproses atau selesai', icon: <Bell size={18} color="var(--orange)" /> },
   { key: 'inventarisSewa', label: 'Konfirmasi Sewa Inventaris', desc: 'Notif ke penyewa saat sewa inventaris berhasil dicatat', icon: <Package size={18} color="#7c3aed" /> },

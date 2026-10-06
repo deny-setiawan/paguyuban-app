@@ -4,7 +4,8 @@ import { db } from '@/lib/db'
 import { profiles, rtGroups, wargaInvites } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { normalizePhone } from '@/lib/utils'
-import { sendWhatsAppMessage, phoneToJid } from '@/lib/wa-client'
+import { sendWhatsAppMessage, phoneToJid, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-client'
+import type { WaNotifConfig } from '@/lib/wa-client'
 
 // ── Google Drive helpers ─────────────────────────────────────────────────────
 
@@ -144,11 +145,14 @@ export async function POST(req: NextRequest) {
     // WA konfirmasi ke pendaftar (fire-and-forget, tidak memblokir response)
     if (phone) {
       try {
-        const namaWarga = nama.trim()
-        const msg = jenis === 'pemutakhiran_warga'
-          ? `Halo *${namaWarga}*! 👋\n\nData *pemutakhiran warga* Anda sudah *diterima* dan akan diverifikasi oleh pengurus RT dalam *1×24 jam*.\n\nKami akan menginformasikan melalui WhatsApp ini ketika akun Anda telah aktif. 🏡`
-          : `Halo *${namaWarga}*! 👋\n\nTerima kasih telah mendaftar sebagai warga baru! 🎉\n\nData *pendaftaran* Anda sudah *diterima* dan akan diverifikasi oleh pengurus RT dalam *1×24 jam*.\n\nKami akan menginformasikan melalui WhatsApp ini ketika akun Anda telah aktif dan siap digunakan. 🏡`
-        sendWhatsAppMessage(phoneToJid(normalizePhone(phone)), msg).catch(() => {})
+        const cfg: WaNotifConfig = { ...DEFAULT_NOTIF_CONFIG, ...(rt.waNotifConfig as WaNotifConfig | null ?? {}) }
+        if (cfg.dataDiterima !== false) {
+          const namaWarga = nama.trim()
+          const msg = jenis === 'pemutakhiran_warga'
+            ? `Halo *${namaWarga}*! 👋\n\nData *pemutakhiran warga* Anda sudah *diterima* dan akan diverifikasi oleh pengurus RT dalam *1×24 jam*.\n\nKami akan menginformasikan melalui WhatsApp ini ketika akun Anda telah aktif. 🏡`
+            : `Halo *${namaWarga}*! 👋\n\nTerima kasih telah mendaftar sebagai warga baru! 🎉\n\nData *pendaftaran* Anda sudah *diterima* dan akan diverifikasi oleh pengurus RT dalam *1×24 jam*.\n\nKami akan menginformasikan melalui WhatsApp ini ketika akun Anda telah aktif dan siap digunakan. 🏡`
+          sendWhatsAppMessage(phoneToJid(normalizePhone(phone)), msg).catch(() => {})
+        }
       } catch { /* non-blocking */ }
     }
 

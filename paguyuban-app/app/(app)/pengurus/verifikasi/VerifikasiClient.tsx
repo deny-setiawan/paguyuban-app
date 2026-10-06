@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
-import { Users, User, CheckCircle, XCircle, FileText, X, AlertTriangle } from 'lucide-react'
+import { Users, User, CheckCircle, XCircle, FileText, X, AlertTriangle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 function detectDocType(url: string): 'image' | 'pdf' {
   if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
@@ -24,7 +24,7 @@ interface InviteItem {
   jenis: string
   dataKk: Record<string, string> | null
   anggota: Array<Record<string, string>> | null
-  fotoFiles: string[] | null
+  fotoFiles?: string[] | null  // undefined = belum di-load
   createdAt: string
 }
 
@@ -40,12 +40,37 @@ const KK_FIELD_LABEL: Record<string, string> = {
   tgl: 'Mulai Menempati',
 }
 
+const PAGE_SIZE = 5
+
 export default function VerifikasiClient({ items, canApprove }: { items: InviteItem[], canApprove: boolean }) {
   const [list, setList] = useState(items)
   const [loading, setLoading] = useState<string | null>(null)
   const [detail, setDetail] = useState<InviteItem | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
   const [confirmApprove, setConfirmApprove] = useState<InviteItem | null>(null)
+  const [pendingPage, setPendingPage] = useState(0)
+
+  async function openDetail(item: InviteItem) {
+    // fotoFiles sudah di-load sebelumnya → langsung tampil
+    if (item.fotoFiles !== undefined) {
+      setDetail(item)
+      return
+    }
+    // Lazy-load fotoFiles dari API
+    setDetailLoading(true)
+    setDetail({ ...item, fotoFiles: null }) // tampil detail dulu tanpa foto
+    try {
+      const res = await fetch(`/api/warga-invite?id=${item.id}`)
+      if (res.ok) {
+        const { invite } = await res.json()
+        const full: InviteItem = { ...item, fotoFiles: invite.fotoFiles as string[] | null }
+        setList(prev => prev.map(i => i.id === item.id ? full : i))
+        setDetail(full)
+      }
+    } catch { /* show without foto */ }
+    setDetailLoading(false)
+  }
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
     setLoading(id + action)
@@ -66,7 +91,6 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   }
 
   function tryApprove(item: InviteItem) {
-    // For warga_baru: show confirmation that new warga data will be created
     if (item.jenis === 'warga_baru' || !item.jenis) {
       setConfirmApprove(item)
     } else {
@@ -76,6 +100,8 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
 
   const pending = list.filter(i => i.status === 'pending')
   const done = list.filter(i => i.status !== 'pending')
+  const totalPages = Math.ceil(pending.length / PAGE_SIZE)
+  const pendingVisible = pending.slice(pendingPage * PAGE_SIZE, (pendingPage + 1) * PAGE_SIZE)
 
   if (list.length === 0) {
     return (
@@ -90,7 +116,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   return (
     <>
       {detail && (
-        <div className="sheet-mask show" onClick={() => setDetail(null)}>
+        <div className="sheet-mask show" onClick={() => !detailLoading && setDetail(null)}>
           <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
               {detail.nama}
@@ -103,10 +129,9 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
               </span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--gray500)', marginBottom: 16 }}>
-              No. {detail.noRumah || '-'} · {detail.jenis === 'pemutakhiran' ? 'Pemutakhiran Data' : 'Warga Baru'}
+              No. {detail.noRumah || '-'} · {detail.jenis === 'pemutakhiran_warga' ? 'Pemutakhiran Data' : 'Warga Baru'}
             </div>
 
-            {/* Data Kepala KK */}
             {detail.dataKk && Object.keys(detail.dataKk).length > 0 && (
               <>
                 <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 6, letterSpacing: 0.5 }}>DATA KEPALA KK</div>
@@ -129,7 +154,6 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
               </>
             )}
 
-            {/* Anggota */}
             {detail.anggota && detail.anggota.length > 0 && (
               <>
                 <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 6, letterSpacing: 0.5 }}>
@@ -146,11 +170,14 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
               </>
             )}
 
-            {/* Foto Dokumen */}
             <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginTop: 8, marginBottom: 8, letterSpacing: 0.5 }}>
               DOKUMEN LAMPIRAN
             </div>
-            {detail.fotoFiles && detail.fotoFiles.length > 0 ? (
+            {detailLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', color: 'var(--gray400)', fontSize: 13 }}>
+                <Loader2 size={14} className="spin" /> Memuat dokumen...
+              </div>
+            ) : detail.fotoFiles && detail.fotoFiles.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
                 {detail.fotoFiles.map((url, i) => {
                   const type = detectDocType(url)
@@ -179,12 +206,12 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             {canApprove && detail.status === 'pending' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
                 <button className="btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  disabled={!!loading}
+                  disabled={!!loading || detailLoading}
                   onClick={() => tryApprove(detail)}>
                   {loading === detail.id + 'approve' ? '...' : <><CheckCircle size={14} /> Setujui</>}
                 </button>
                 <button className="btn-ghost" style={{ flex: 1, color: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  disabled={!!loading}
+                  disabled={!!loading || detailLoading}
                   onClick={() => handleAction(detail.id, 'reject')}>
                   {loading === detail.id + 'reject' ? '...' : <><XCircle size={14} /> Tolak</>}
                 </button>
@@ -200,23 +227,39 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             MENUNGGU VERIFIKASI ({pending.length})
           </div>
           <div className="peng-card" style={{ marginBottom: 16 }}>
-            {pending.map(item => (
-              <div key={item.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => setDetail(item)}>
+            {pendingVisible.map(item => (
+              <div key={item.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => openDetail(item)}>
                 <div className="pi-ico" style={{ background: 'var(--gold-l)' }}><User size={18} color="var(--gold)" /></div>
                 <div className="pi-body">
                   <div className="pi-t">
                     {item.nama}
                     <span className="pill menunggu">Pending</span>
-                    {item.jenis === 'pemutakhiran' && <span className="pill" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>Pemutakhiran</span>}
+                    {(item.jenis === 'pemutakhiran' || item.jenis === 'pemutakhiran_warga') && <span className="pill" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>Pemutakhiran</span>}
                   </div>
                   <div className="pi-d">
                     No. {item.noRumah || '-'} · {item.anggota?.length ? `${item.anggota.length + 1} jiwa` : '1 jiwa'}
-                    {item.fotoFiles && item.fotoFiles.length > 0 && ` · ${item.fotoFiles.length} foto`}
                   </div>
                   <div className="pi-time">{timeAgo(item.createdAt)}</div>
                 </div>
               </div>
             ))}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid var(--gray100)' }}>
+                <button
+                  onClick={() => setPendingPage(p => p - 1)} disabled={pendingPage === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: pendingPage === 0 ? 'default' : 'pointer', color: pendingPage === 0 ? 'var(--gray300)' : 'var(--g600)', fontWeight: 700, fontSize: 13, fontFamily: 'var(--f)', padding: '4px 8px' }}>
+                  <ChevronLeft size={16} /> Prev
+                </button>
+                <span style={{ fontSize: 12, color: 'var(--gray500)', fontWeight: 700 }}>
+                  {pendingPage + 1} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPendingPage(p => p + 1)} disabled={pendingPage === totalPages - 1}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: pendingPage === totalPages - 1 ? 'default' : 'pointer', color: pendingPage === totalPages - 1 ? 'var(--gray300)' : 'var(--g600)', fontWeight: 700, fontSize: 13, fontFamily: 'var(--f)', padding: '4px 8px' }}>
+                  Next <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -228,7 +271,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
             {done.map(item => {
               const st = STATUS_STYLE[item.status] || STATUS_STYLE.pending
               return (
-                <div key={item.id} className="peng-item" style={{ cursor: 'pointer', opacity: 0.75 }} onClick={() => setDetail(item)}>
+                <div key={item.id} className="peng-item" style={{ cursor: 'pointer', opacity: 0.75 }} onClick={() => openDetail(item)}>
                   <div className="pi-ico" style={{ background: st.bg }}><User size={18} color={st.color} /></div>
                   <div className="pi-body">
                     <div className="pi-t">{item.nama} <span className="pill" style={{ background: st.bg, color: st.color }}>{st.label}</span></div>
@@ -295,6 +338,11 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
           )}
         </div>
       )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 1.2s linear infinite; }
+      `}</style>
     </>
   )
 }

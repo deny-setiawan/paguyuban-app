@@ -1,4 +1,5 @@
 export interface WaNotifConfig {
+  dataDiterima?: boolean
   wargaDiterima?: boolean
   laporanUpdate?: boolean
   suratUpdate?: boolean
@@ -7,6 +8,7 @@ export interface WaNotifConfig {
 }
 
 export const DEFAULT_NOTIF_CONFIG: WaNotifConfig = {
+  dataDiterima: true,
   wargaDiterima: true,
   laporanUpdate: true,
   suratUpdate: true,

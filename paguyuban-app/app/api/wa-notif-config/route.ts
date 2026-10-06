@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest) {
   if (!payload.rtGroupId) return NextResponse.json({ error: 'No RT' }, { status: 400 })
 
   const body = await req.json()
-  const allowed = ['wargaDiterima', 'laporanUpdate', 'suratUpdate', 'inventarisSewa', 'groupLaporan'] as const
+  const allowed = ['dataDiterima', 'wargaDiterima', 'laporanUpdate', 'suratUpdate', 'inventarisSewa', 'groupLaporan'] as const
   const updates: Record<string, unknown> = {}
   for (const k of allowed) {
     if (k in body) updates[k] = body[k]

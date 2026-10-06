@@ -25,16 +25,26 @@ interface SewaItem {
   total: number | null
 }
 
+interface RiwayatItem {
+  id: string
+  inventarisNama: string | null
+  tglSewa: string
+  tglKembali: string | null
+  jumlah: number | null
+  total: number | null
+}
+
 interface Props {
   items: Item[]
   activeSewa: SewaItem[]
+  riwayat: RiwayatItem[]
   profileId: string
   profileName: string | null
   profilePhone: string | null
 }
 
-export default function InventarisClient({ items, activeSewa: initialSewa, profileName, profilePhone }: Props) {
-  const [tab, setTab] = useState<'daftar' | 'aktif'>('daftar')
+export default function InventarisClient({ items, activeSewa: initialSewa, riwayat: initialRiwayat, profileName, profilePhone }: Props) {
+  const [tab, setTab] = useState<'daftar' | 'aktif' | 'riwayat'>('daftar')
   const [sewaItem, setSewaItem] = useState<Item | null>(null)
   const [sewaNama, setSewaNama] = useState(profileName || '')
   const [sewaHp, setSewaHp] = useState(profilePhone || '')
@@ -45,6 +55,7 @@ export default function InventarisClient({ items, activeSewa: initialSewa, profi
   const [done, setDone] = useState(false)
   const [localItems, setLocalItems] = useState(items)
   const [activeSewa, setActiveSewa] = useState(initialSewa)
+  const [riwayatList, setRiwayatList] = useState(initialRiwayat)
   const [ubahTglTarget, setUbahTglTarget] = useState<SewaItem | null>(null)
   const [newTglKembali, setNewTglKembali] = useState('')
   const [ubahLoading, setUbahLoading] = useState(false)
@@ -84,6 +95,7 @@ export default function InventarisClient({ items, activeSewa: initialSewa, profi
     setKembalikanLoading(sewaId)
     try {
       const today = new Date().toISOString().split('T')[0]
+      const sewaToReturn = activeSewa.find(s => s.id === sewaId)
       const res = await fetch(`/api/inventaris-sewa/${sewaId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'kembalikan', tglKembali: today, inventarisId }),
@@ -91,6 +103,16 @@ export default function InventarisClient({ items, activeSewa: initialSewa, profi
       if (res.ok) {
         setActiveSewa(prev => prev.filter(s => s.id !== sewaId))
         setLocalItems(prev => prev.map(i => i.id === inventarisId ? { ...i, stok: (i.stok || 0) + 1 } : i))
+        if (sewaToReturn) {
+          setRiwayatList(prev => [{
+            id: sewaToReturn.id,
+            inventarisNama: sewaToReturn.inventarisNama,
+            tglSewa: sewaToReturn.tglSewa,
+            tglKembali: today,
+            jumlah: sewaToReturn.jumlah,
+            total: sewaToReturn.total,
+          }, ...prev])
+        }
       }
     } catch {}
     setKembalikanLoading(null)
@@ -175,16 +197,21 @@ export default function InventarisClient({ items, activeSewa: initialSewa, profi
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {([['daftar', 'Daftar Inventaris'], ['aktif', `Sewa Aktif Saya${activeSewa.length > 0 ? ` (${activeSewa.length})` : ''}`]] as const).map(([t, lbl]) => (
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, background: 'var(--gray100)', borderRadius: 12, padding: 4 }}>
+        {[
+          { id: 'daftar' as const, label: 'Daftar Barang' },
+          { id: 'aktif' as const, label: `Sewa Aktif${activeSewa.length > 0 ? ` (${activeSewa.length})` : ''}` },
+          { id: 'riwayat' as const, label: 'Riwayat' },
+        ].map(({ id: t, label }) => (
           <button key={t} onClick={() => setTab(t)}
-            style={{ flex: 1, height: 38, borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12,
-              background: tab === t ? 'var(--g600)' : 'var(--gray100)', color: tab === t ? 'white' : 'var(--gray600)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            style={{ flex: 1, padding: '8px 4px', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 12,
+              background: tab === t ? 'var(--g600)' : 'transparent', color: tab === t ? 'white' : 'var(--gray500)',
+              boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, position: 'relative' }}>
             {t === 'aktif' && activeSewa.length > 0 && tab !== t && (
               <span style={{ background: 'var(--red)', color: 'white', borderRadius: 20, fontSize: 10, fontWeight: 800, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{activeSewa.length}</span>
             )}
-            {lbl}
+            {label}
           </button>
         ))}
       </div>
@@ -270,6 +297,35 @@ export default function InventarisClient({ items, activeSewa: initialSewa, profi
                     onClick={() => kembalikan(s.id, s.inventarisId)}>
                     <RotateCcw size={13} /> {kembalikanLoading === s.id ? '…' : 'Dikembalikan'}
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Tab: Riwayat */}
+      {tab === 'riwayat' && (
+        riwayatList.length === 0 ? (
+          <div className="empty">
+            <div className="e-i" style={{ display: 'flex', justifyContent: 'center' }}><RotateCcw size={38} color="var(--gray400)" /></div>
+            <div className="e-t">Belum ada riwayat</div>
+            <div className="e-d">Barang yang sudah Anda kembalikan akan muncul di sini.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {riwayatList.map(r => (
+              <div key={r.id} className="iv-card">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--gray100)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <RotateCcw size={20} color="var(--gray400)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--gray800)' }}>{r.inventarisNama || '—'}</div>
+                    <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Sewa: <b>{r.tglSewa}</b></div>
+                    {r.tglKembali && <div style={{ fontSize: 12, color: 'var(--g600)', marginTop: 2 }}>Dikembalikan: <b>{r.tglKembali}</b></div>}
+                    {r.total ? <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Total: {rupiah(r.total)}</div> : null}
+                  </div>
                 </div>
               </div>
             ))}

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles, inventaris, inventarisSewa } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import InventarisClient from './InventarisClient'
 import { Package } from 'lucide-react'
 
@@ -17,13 +17,24 @@ export default async function InventarisPage() {
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, payload.sub)).limit(1)
   if (!profile) redirect('/')
 
-  const items = await db.select().from(inventaris)
-    .where(eq(inventaris.rtGroupId, profile.rtGroupId!))
-    .orderBy(inventaris.nama)
-
-  // User's active sewa
-  const activeSewa = await db.select().from(inventarisSewa)
-    .where(and(eq(inventarisSewa.penyewaId, profile.id), eq(inventarisSewa.status, 'disewa')))
+  const [items, activeSewa, riwayat] = await Promise.all([
+    db.select().from(inventaris)
+      .where(eq(inventaris.rtGroupId, profile.rtGroupId!))
+      .orderBy(inventaris.nama),
+    db.select().from(inventarisSewa)
+      .where(and(eq(inventarisSewa.penyewaId, profile.id), eq(inventarisSewa.status, 'disewa'))),
+    db.select({
+      id: inventarisSewa.id,
+      inventarisNama: inventarisSewa.inventarisNama,
+      tglSewa: inventarisSewa.tglSewa,
+      tglKembali: inventarisSewa.tglKembali,
+      jumlah: inventarisSewa.jumlah,
+      total: inventarisSewa.total,
+    }).from(inventarisSewa)
+      .where(and(eq(inventarisSewa.penyewaId, profile.id), eq(inventarisSewa.status, 'dikembalikan')))
+      .orderBy(desc(inventarisSewa.tglKembali))
+      .limit(20),
+  ])
 
   return (
     <>
@@ -50,6 +61,7 @@ export default async function InventarisPage() {
           hargaSatuan: s.hargaSatuan,
           total: s.total,
         }))}
+        riwayat={riwayat}
         profileId={profile.id}
         profileName={profile.fullName}
         profilePhone={profile.phone}

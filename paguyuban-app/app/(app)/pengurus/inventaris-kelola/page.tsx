@@ -22,13 +22,27 @@ export default async function InventarisKelolaPage() {
     : null
   if (!canAccess('inventaris', payload.role, menuConfig)) redirect('/pengurus')
 
-  const [items, activeSewa] = await Promise.all([
+  const [items, activeSewa, riwayat] = await Promise.all([
     db.select().from(inventaris)
       .where(eq(inventaris.rtGroupId, payload.rtGroupId!))
       .orderBy(inventaris.nama),
     db.select().from(inventarisSewa)
       .where(eq(inventarisSewa.status, 'disewa'))
       .orderBy(desc(inventarisSewa.createdAt))
+      .limit(50),
+    db.select({
+      id: inventarisSewa.id,
+      inventarisNama: inventarisSewa.inventarisNama,
+      penyewaNama: inventarisSewa.penyewaNama,
+      penyewaHp: inventarisSewa.penyewaHp,
+      tglSewa: inventarisSewa.tglSewa,
+      tglKembali: inventarisSewa.tglKembali,
+      tglKembaliRencana: inventarisSewa.tglKembaliRencana,
+      jumlah: inventarisSewa.jumlah,
+      total: inventarisSewa.total,
+    }).from(inventarisSewa)
+      .where(eq(inventarisSewa.status, 'dikembalikan'))
+      .orderBy(desc(inventarisSewa.tglKembali))
       .limit(50),
   ])
 
@@ -57,7 +71,9 @@ export default async function InventarisKelolaPage() {
           tglKembaliRencana: s.tglKembaliRencana,
           jumlah: s.jumlah,
           inventarisId: s.inventarisId,
+          total: s.total,
         }))}
+        riwayat={riwayat}
       />
     </>
   )

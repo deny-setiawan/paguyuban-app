@@ -16,10 +16,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
   const { action } = body
 
-  // Verify ownership — only the penyewa can act on their own sewa
   const [sewa] = await db.select().from(inventarisSewa).where(eq(inventarisSewa.id, id)).limit(1)
   if (!sewa) return NextResponse.json({ error: 'Tidak ditemukan' }, { status: 404 })
-  if (sewa.penyewaId !== payload.sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const isWarga = !payload.role || payload.role === 'warga' || payload.role === 'tamu'
+  if (isWarga && sewa.penyewaId !== payload.sub) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   if (action === 'kembalikan') {
     const tglKembali = body.tglKembali || new Date().toISOString().split('T')[0]

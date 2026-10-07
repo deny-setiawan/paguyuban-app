@@ -126,8 +126,8 @@ async function addKkPage(
     columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 38 }, 2: { cellWidth: 35 } },
   })
 
-  const lastTable = typeof (doc as Record<string, unknown>).getLastAutoTable === 'function'
-    ? (doc as Record<string, () => { finalY?: number } | null>).getLastAutoTable()
+  const lastTable = typeof (doc as unknown as Record<string, unknown>).getLastAutoTable === 'function'
+    ? (doc as unknown as Record<string, () => { finalY?: number } | null>).getLastAutoTable()
     : null
   y = (lastTable?.finalY ?? y) + 10
 

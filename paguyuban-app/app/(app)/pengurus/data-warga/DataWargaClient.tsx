@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
@@ -72,10 +72,14 @@ function kkToExportData(group: KKGroup): KkExportData {
   }
 }
 
+const PAGE_SIZE = 5
+
 export default function DataWargaClient({ items, rtName, canDeleteKk = false }: { items: WargaItem[]; rtName: string; canDeleteKk?: boolean }) {
   const [list, setList] = useState(items)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'warga' | 'kk'>('warga')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const [detail, setDetail] = useState<WargaItem | null>(null)
   const [editForm, setEditForm] = useState<Partial<WargaItem>>({})
   const [loading, setLoading] = useState(false)
@@ -86,6 +90,18 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   const [buildingAll, setBuildingAll] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
+
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [search, tab])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(prev => prev + PAGE_SIZE)
+    }, { threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [tab])
 
   function closePdfPreview() {
     pdfPreview?.cleanup()
@@ -201,6 +217,11 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
     acc[key].push(w)
     return acc
   }, {} as Record<string, WargaItem[]>)
+
+  const sortedWargaEntries = Object.entries(wargaGrouped).sort(([a], [b]) => a.localeCompare(b))
+  const visibleWargaEntries = sortedWargaEntries.slice(0, visibleCount)
+  const visibleKkGroups = kkGroups.slice(0, visibleCount)
+  const hasMore = tab === 'kk' ? visibleCount < kkGroups.length : visibleCount < sortedWargaEntries.length
 
   return (
     <>
@@ -388,35 +409,38 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
             <div className="e-t">Tidak ada warga ditemukan</div>
           </div>
         ) : (
-          Object.entries(wargaGrouped).sort(([a], [b]) => a.localeCompare(b)).map(([noRumah, wargaList]) => (
-            <div key={noRumah} style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
-                No. {noRumah}
-              </div>
-              <div className="peng-card">
-                {wargaList.map(w => (
-                  <div key={w.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => openDetail(w)}>
-                    <div className="pi-ico" style={{ background: w.kkStatus === 'kepala_kk' ? 'var(--g50)' : 'var(--gray100)' }}>
-                      <User size={18} color={w.kkStatus === 'kepala_kk' ? 'var(--g600)' : 'var(--gray500)'} />
-                    </div>
-                    <div className="pi-body">
-                      <div className="pi-t">
-                        {w.namaLengkap}
-                        {w.kkStatus === 'kepala_kk' && <span className="pill" style={{ background: 'var(--g50)', color: 'var(--g700)' }}>Kepala KK</span>}
-                        {w.source === 'pengurus' && <span className="pill" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>Pengurus</span>}
+          <>
+            {visibleWargaEntries.map(([noRumah, wargaList]) => (
+              <div key={noRumah} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  No. {noRumah}
+                </div>
+                <div className="peng-card">
+                  {wargaList.map(w => (
+                    <div key={w.id} className="peng-item" style={{ cursor: 'pointer' }} onClick={() => openDetail(w)}>
+                      <div className="pi-ico" style={{ background: w.kkStatus === 'kepala_kk' ? 'var(--g50)' : 'var(--gray100)' }}>
+                        <User size={18} color={w.kkStatus === 'kepala_kk' ? 'var(--g600)' : 'var(--gray500)'} />
                       </div>
-                      <div className="pi-d">
-                        {w.hubunganKeluarga || w.kkStatus || '-'}
-                        {w.agama && ` · ${agamaLabel(w.agama)}`}
-                        {w.statusHunian && ` · ${w.statusHunian}`}
+                      <div className="pi-body">
+                        <div className="pi-t">
+                          {w.namaLengkap}
+                          {w.kkStatus === 'kepala_kk' && <span className="pill" style={{ background: 'var(--g50)', color: 'var(--g700)' }}>Kepala KK</span>}
+                          {w.source === 'pengurus' && <span className="pill" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>Pengurus</span>}
+                        </div>
+                        <div className="pi-d">
+                          {w.hubunganKeluarga || w.kkStatus || '-'}
+                          {w.agama && ` · ${agamaLabel(w.agama)}`}
+                          {w.statusHunian && ` · ${w.statusHunian}`}
+                        </div>
+                        {w.phone && <div className="pi-d" style={{ color: 'var(--g600)' }}>{w.phone}</div>}
                       </div>
-                      {w.phone && <div className="pi-d" style={{ color: 'var(--g600)' }}>{w.phone}</div>}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+            {hasMore && <div ref={sentinelRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray400)', fontSize: 12 }}>Memuat...</div>}
+          </>
         )
       )}
 
@@ -428,7 +452,8 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
             <div className="e-t">Tidak ada data KK ditemukan</div>
           </div>
         ) : (
-          kkGroups.map(group => {
+          <>
+          {visibleKkGroups.map(group => {
             const kepala = group.kepala
             const hasFoto = group.all.some(w => w.fotoFiles && w.fotoFiles.length > 0)
             return (
@@ -482,7 +507,9 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                 </div>
               </div>
             )
-          })
+          })}
+          {hasMore && <div ref={sentinelRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray400)', fontSize: 12 }}>Memuat...</div>}
+          </>
         )
       )}
     </>

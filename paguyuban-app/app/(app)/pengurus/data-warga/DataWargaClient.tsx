@@ -72,7 +72,7 @@ function kkToExportData(group: KKGroup): KkExportData {
   }
 }
 
-export default function DataWargaClient({ items, rtName }: { items: WargaItem[]; rtName: string }) {
+export default function DataWargaClient({ items, rtName, canDeleteKk = false }: { items: WargaItem[]; rtName: string; canDeleteKk?: boolean }) {
   const [list, setList] = useState(items)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'warga' | 'kk'>('warga')
@@ -260,7 +260,7 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
           <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div style={{ fontWeight: 800, fontSize: 16 }}>{detail.namaLengkap}</div>
-              {detail.source === 'warga' && detail.noRumah && detail.kkStatus === 'kepala_kk' && (
+              {canDeleteKk && detail.source === 'warga' && detail.noRumah && detail.kkStatus === 'kepala_kk' && (
                 <button className="btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)', display: 'flex', alignItems: 'center', gap: 4 }}
                   onClick={() => setDeleteTarget({ id: detail.id, noRumah: detail.noRumah!, nama: detail.namaLengkap })}>
                   <Trash2 size={13} /> Hapus KK
@@ -447,7 +447,7 @@ export default function DataWargaClient({ items, rtName }: { items: WargaItem[];
                       title="Export PDF">
                       <FileDown size={11} /> {buildingKk === group.noRumah ? '...' : 'PDF'}
                     </button>
-                    {kepala && kepala.source === 'warga' && (
+                    {canDeleteKk && kepala && kepala.source === 'warga' && (
                       <button className="btn-ghost" style={{ fontSize: 11, color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setDeleteTarget({ id: kepala.id, noRumah: group.noRumah, nama: kepala.namaLengkap })}>
                         <Trash2 size={11} /> Hapus KK

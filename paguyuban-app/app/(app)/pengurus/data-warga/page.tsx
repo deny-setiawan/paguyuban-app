@@ -119,7 +119,7 @@ export default async function DataWargaPage() {
         <div className="t"><Users size={16} /> Data Warga ({items.length})</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', fontWeight: 700 }}>← Kembali</Link>
       </div>
-      <DataWargaClient items={items} rtName={rtName} />
+      <DataWargaClient items={items} rtName={rtName} canDeleteKk={payload.role === 'admin'} />
     </>
   )
 }

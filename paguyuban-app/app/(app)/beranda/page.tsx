@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, rtGroups, pengumuman, iuranInvoices, transaksi, surat, laporanWarga, inventaris } from '@/lib/db/schema'
+import { profiles, rtGroups, pengumuman, iuranInvoices, transaksi, surat, laporanWarga, inventaris, warga } from '@/lib/db/schema'
 import { eq, and, desc, count, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { rupiah, timeAgo } from '@/lib/utils'
@@ -37,8 +37,9 @@ export default async function BerandaPage() {
   let jumlahInventaris = 0
   let suratCount = 0
   let laporanCount = 0
+  let jumlahKk = 0
   try {
-    const [pList, iList, lastTransRes, invCount, suratRes, laporanRes] = await Promise.all([
+    const [pList, iList, lastTransRes, invCount, suratRes, laporanRes, kkRes] = await Promise.all([
       db.select().from(pengumuman)
         .where(and(eq(pengumuman.rtGroupId, profile.rtGroupId!), eq(pengumuman.isPublished, true)))
         .orderBy(desc(pengumuman.createdAt)).limit(3),
@@ -54,6 +55,8 @@ export default async function BerandaPage() {
         .where(and(eq(surat.pemohonId, profile.id), inArray(surat.status, ['diajukan', 'diproses']))),
       db.select({ c: count() }).from(laporanWarga)
         .where(and(eq(laporanWarga.pelaporId, profile.id), inArray(laporanWarga.status, ['menunggu', 'diproses']))),
+      db.select({ c: count() }).from(warga)
+        .where(and(eq(warga.rtGroupId, profile.rtGroupId!), eq(warga.kkStatus, 'kepala_kk'))),
     ])
     pengumumanList = pList
     invoiceList = iList
@@ -61,6 +64,7 @@ export default async function BerandaPage() {
     jumlahInventaris = Number(invCount[0]?.c ?? 0)
     suratCount = Number(suratRes[0]?.c ?? 0)
     laporanCount = Number(laporanRes[0]?.c ?? 0)
+    jumlahKk = Number(kkRes[0]?.c ?? 0)
   } catch {
     // Tables not yet migrated — degrade gracefully
   }
@@ -134,7 +138,7 @@ export default async function BerandaPage() {
             <span>Inventaris</span>
           </div>
           <div>
-            <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--gray700)' }}>{rt?.jumlahKk ?? '—'}</b>
+            <b style={{ display: 'block', fontSize: 16, fontWeight: 800, color: 'var(--gray700)' }}>{jumlahKk || '—'}</b>
             <span>Jumlah KK</span>
           </div>
         </div>

@@ -12,6 +12,8 @@ interface LaporanItem {
   status: string
   tanggapan: string | null
   namaPelapor: string
+  phonePelapor: string | null
+  noRumahPelapor: string | null
   createdAt: string
 }
 
@@ -88,11 +90,27 @@ export default function LaporanMasukClient({ items }: { items: LaporanItem[] }) 
       {detail && (
         <div className="sheet-mask show" onClick={() => { setDetail(null); setTanggapan('') }}>
           <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px' }}>
-            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 16 }}>Tanggapi Laporan</div>
-            <div className="kv-row"><span>Kategori</span><b style={{ textTransform: 'capitalize' }}>{detail.kategori}</b></div>
-            <div className="kv-row"><span>Pelapor</span><b>{detail.namaPelapor}</b></div>
-            <div className="kv-row"><span>Judul</span><b>{detail.judul}</b></div>
-            {detail.isi && <div style={{ background: 'var(--gray50)', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--gray700)' }}>{detail.isi}</div>}
+            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 14 }}>Tanggapi Laporan</div>
+            <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '4px 4px', marginBottom: 12 }}>
+              {[
+                ['Kategori', <span style={{ textTransform: 'capitalize' }}>{detail.kategori}</span>],
+                ['Pelapor', detail.namaPelapor],
+                ['No. Rumah', detail.noRumahPelapor || '-'],
+                ['No. Telepon', detail.phonePelapor
+                  ? <a href={`https://wa.me/${detail.phonePelapor.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                      style={{ color: 'var(--g600)', fontWeight: 700, textDecoration: 'none' }}>
+                      {detail.phonePelapor} 💬
+                    </a>
+                  : '-'],
+                ['Judul', detail.judul],
+              ].map(([label, value], i, arr) => (
+                <div key={i} className="kv" style={i === arr.length - 1 ? { borderBottom: 'none' } : {}}>
+                  <span className="k">{label as string}</span>
+                  <span className="v">{value}</span>
+                </div>
+              ))}
+            </div>
+            {detail.isi && <div style={{ background: 'var(--gray50)', borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--gray700)', lineHeight: 1.6 }}>{detail.isi}</div>}
             <div style={{ marginTop: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Tanggapan</label>
               <textarea className="inp" rows={3} value={tanggapan} onChange={e => setTanggapan(e.target.value)}

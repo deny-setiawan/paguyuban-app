@@ -26,6 +26,7 @@ export default async function LaporanMasukPage() {
     laporan: laporanWarga,
     nama: profiles.fullName,
     phone: profiles.phone,
+    noRumah: profiles.noRumah,
   }).from(laporanWarga)
     .leftJoin(profiles, eq(laporanWarga.pelaporId, profiles.id))
     .where(and(
@@ -49,6 +50,8 @@ export default async function LaporanMasukPage() {
         status: r.laporan.status,
         tanggapan: r.laporan.tanggapan,
         namaPelapor: r.nama || r.phone || '-',
+        phonePelapor: r.phone || null,
+        noRumahPelapor: r.noRumah || null,
         createdAt: r.laporan.createdAt.toISOString(),
       }))} />
     </>

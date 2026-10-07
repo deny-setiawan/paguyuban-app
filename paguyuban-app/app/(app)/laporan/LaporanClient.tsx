@@ -124,19 +124,19 @@ export default function LaporanClient({ laporan }: Props) {
           </div>
 
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Kategori Laporan *</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {KATEGORI_OPTIONS.map(k => (
               <label key={k.val} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                display: 'flex', flexDirection: 'column', gap: 3, padding: '10px 12px',
                 borderRadius: 12, border: `2px solid ${kategori === k.val ? 'var(--g500)' : 'var(--gray200)'}`,
                 background: kategori === k.val ? 'var(--g50)' : 'white', cursor: 'pointer',
               }}>
                 <input type="radio" style={{ display: 'none' }} checked={kategori === k.val} onChange={() => setKategori(k.val)} />
-                <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gray800)' }}>{k.lbl}</div>
-                  <div style={{ fontSize: 12, color: 'var(--gray500)' }}>{k.desc}</div>
+                  {kategori === k.val && <CheckCircle size={14} color="var(--g500)" />}
                 </div>
-                {kategori === k.val && <CheckCircle size={16} color="var(--g500)" />}
+                <div style={{ fontSize: 11, color: 'var(--gray500)', lineHeight: 1.3 }}>{k.desc}</div>
               </label>
             ))}
           </div>

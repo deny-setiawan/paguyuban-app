@@ -126,10 +126,10 @@ async function addKkPage(
     columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 38 }, 2: { cellWidth: 35 } },
   })
 
-  const lastTable = typeof (doc as unknown as Record<string, unknown>).getLastAutoTable === 'function'
-    ? (doc as unknown as Record<string, () => { finalY?: number } | null>).getLastAutoTable()
-    : null
-  y = (lastTable?.finalY ?? y) + 10
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const docAny = doc as any
+  const tblFinalY: number | undefined = docAny.getLastAutoTable?.()?.finalY ?? docAny.lastAutoTable?.finalY
+  y = (typeof tblFinalY === 'number' ? tblFinalY : y + anggotaRows.length * 8 + 14) + 10
 
   // ── Pernyataan ──
   const statusHunian = kepala?.statusHunian || 'milik sendiri'

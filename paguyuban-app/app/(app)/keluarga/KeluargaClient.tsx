@@ -36,16 +36,26 @@ interface Props {
   tahun: number
 }
 
+function detectDocType(url: string): 'image' | 'pdf' {
+  if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
+  if (url.includes('drive.google.com/file/d/')) return 'pdf'
+  return 'image'
+}
+
+function getPdfSrc(url: string): string {
+  if (url.startsWith('data:')) return url
+  if (url.includes('drive.google.com/file/d/')) return url.replace('/view', '/preview').replace(/\/preview.*$/, '/preview')
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+}
+
 export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone, fotoFiles, rtName, kelahiranTerpakai, sakitByPerson, tahun }: Props) {
   const [building, setBuilding] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
-  const [fotoModal, setFotoModal] = useState<string | null>(null)
+  const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
 
   function openDoc(url: string) {
-    const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)
-    if (isPdf) { window.open(url, '_blank'); return }
-    setFotoModal(url)
+    setDocModal({ url, type: detectDocType(url) })
   }
 
   function closePdfPreview() {
@@ -236,18 +246,18 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
       {fotoFiles.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
           {fotoFiles.map((url, i) => {
-            const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)
-            const isImg = !isPdf && (url.startsWith('data:image/') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url) || url.startsWith('https://'))
+            const type = detectDocType(url)
             return (
               <button key={i} onClick={() => openDoc(url)}
-                style={{ border: `1.5px solid ${isPdf ? 'var(--red)' : 'var(--gray200)'}`, borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
-                {isImg
-                  ? <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                      <FileText size={24} color={isPdf ? 'var(--red)' : 'var(--gray400)'} />
-                      <span style={{ fontSize: 9, color: isPdf ? 'var(--red)' : 'var(--gray500)', fontWeight: isPdf ? 700 : 400 }}>{isPdf ? 'PDF' : `Dok ${i + 1}`}</span>
-                    </div>
-                }
+                style={{ border: 'none', padding: 0, borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'var(--gray100)', cursor: 'pointer', display: 'block', width: '100%' }}>
+                {type === 'image' ? (
+                  <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                    <FileText size={24} color="var(--gray400)" />
+                    <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
+                  </div>
+                )}
               </button>
             )
           })}
@@ -258,15 +268,26 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
         </div>
       )}
 
-      {/* Foto lightbox */}
-      {fotoModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setFotoModal(null)}>
-          <button onClick={() => setFotoModal(null)}
-            style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Dokumen modal — gambar atau PDF */}
+      {docModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setDocModal(null)}
+        >
+          <button onClick={() => setDocModal(null)}
+            style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}>
             <X size={18} />
           </button>
-          <img src={fotoModal} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} />
+          {docModal.type === 'image' ? (
+            <img src={docModal.url} alt="Dokumen"
+              style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }}
+              onClick={e => e.stopPropagation()} />
+          ) : (
+            <div style={{ width: '90vw', height: '80vh', borderRadius: 12, overflow: 'hidden', background: 'white' }}
+              onClick={e => e.stopPropagation()}>
+              <iframe src={getPdfSrc(docModal.url)} style={{ width: '100%', height: '100%', border: 'none' }} title="Dokumen PDF" />
+            </div>
+          )}
         </div>
       )}
 

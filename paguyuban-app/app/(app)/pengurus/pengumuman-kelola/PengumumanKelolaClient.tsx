@@ -101,15 +101,23 @@ export default function PengumumanKelolaClient({ items }: { items: PItem[] }) {
               {editItem ? 'Edit Pengumuman' : 'Pengumuman Baru'}
             </div>
             <form onSubmit={submit}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Judul *</label>
               <input className="inp" required value={form.judul} onChange={e => setForm(f => ({ ...f, judul: e.target.value }))} placeholder="Judul pengumuman..." />
-              <textarea className="inp" rows={4} value={form.isi} onChange={e => setForm(f => ({ ...f, isi: e.target.value }))} placeholder="Isi pengumuman..." style={{ resize: 'vertical' }} />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Isi Pengumuman</label>
+              <textarea className="inp" rows={4} value={form.isi} onChange={e => setForm(f => ({ ...f, isi: e.target.value }))} placeholder="Tulis isi pengumuman di sini..." style={{ resize: 'vertical' }} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <select className="inp" value={form.kategori} onChange={e => setForm(f => ({ ...f, kategori: e.target.value }))}>
-                  {KATEGORI.map(k => <option key={k} value={k} style={{ textTransform: 'capitalize' }}>{k}</option>)}
-                </select>
-                <select className="inp" value={form.prioritas} onChange={e => setForm(f => ({ ...f, prioritas: e.target.value }))}>
-                  {PRIORITAS.map(p => <option key={p} value={p} style={{ textTransform: 'capitalize' }}>{p}</option>)}
-                </select>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Kategori</label>
+                  <select className="inp" value={form.kategori} onChange={e => setForm(f => ({ ...f, kategori: e.target.value }))}>
+                    {KATEGORI.map(k => <option key={k} value={k} style={{ textTransform: 'capitalize' }}>{k}</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Prioritas</label>
+                  <select className="inp" value={form.prioritas} onChange={e => setForm(f => ({ ...f, prioritas: e.target.value }))}>
+                    {PRIORITAS.map(p => <option key={p} value={p} style={{ textTransform: 'capitalize' }}>{p}</option>)}
+                  </select>
+                </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer', fontSize: 14 }}>
                 <input type="checkbox" checked={form.isPublished} onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))} />

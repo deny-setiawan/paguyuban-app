@@ -263,13 +263,22 @@ export default function InventarisKelolaClient({
           <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 16 }}>{editItem ? 'Edit Barang' : 'Tambah Barang'}</div>
             <form onSubmit={submit}>
-              <input className="inp" required value={form.nama} onChange={e => setForm(f => ({ ...f, nama: e.target.value }))} placeholder="Nama barang..." />
-              <input className="inp" type="number" min={0} value={form.hargaSewa} onChange={e => setForm(f => ({ ...f, hargaSewa: e.target.value }))} placeholder="Harga sewa per hari (Rp)" />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Nama Barang *</label>
+              <input className="inp" required value={form.nama} onChange={e => setForm(f => ({ ...f, nama: e.target.value }))} placeholder="mis. Kursi lipat, Sound system" />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Harga Sewa per Hari (Rp)</label>
+              <input className="inp" type="number" min={0} value={form.hargaSewa} onChange={e => setForm(f => ({ ...f, hargaSewa: e.target.value }))} placeholder="0 = gratis" />
               <div style={{ display: 'flex', gap: 8 }}>
-                <input className="inp" type="number" min={1} value={form.stokTotal} onChange={e => setForm(f => ({ ...f, stokTotal: e.target.value }))} placeholder="Stok total" />
-                <input className="inp" type="number" min={0} value={form.stok} onChange={e => setForm(f => ({ ...f, stok: e.target.value }))} placeholder="Stok tersedia" />
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Stok Total</label>
+                  <input className="inp" type="number" min={1} value={form.stokTotal} onChange={e => setForm(f => ({ ...f, stokTotal: e.target.value }))} placeholder="1" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Stok Tersedia</label>
+                  <input className="inp" type="number" min={0} value={form.stok} onChange={e => setForm(f => ({ ...f, stok: e.target.value }))} placeholder="1" />
+                </div>
               </div>
-              <textarea className="inp" rows={2} value={form.deskripsi} onChange={e => setForm(f => ({ ...f, deskripsi: e.target.value }))} placeholder="Deskripsi (opsional)..." style={{ resize: 'vertical' }} />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Deskripsi</label>
+              <textarea className="inp" rows={2} value={form.deskripsi} onChange={e => setForm(f => ({ ...f, deskripsi: e.target.value }))} placeholder="Keterangan tambahan (opsional)..." style={{ resize: 'vertical' }} />
               <button className="btn-primary" type="submit" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
                 {loading ? 'Menyimpan...' : editItem ? 'Simpan Perubahan' : 'Tambah'}
               </button>

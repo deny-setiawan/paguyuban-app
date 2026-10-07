@@ -97,16 +97,21 @@ export default function KasClient({ items, saldoKas, canEdit }: {
                   </button>
                 ))}
               </div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Kategori</label>
               <select className="inp" value={form.kategori} onChange={e => setForm(f => ({ ...f, kategori: e.target.value }))}>
-                <option value="">Kategori...</option>
+                <option value="">Pilih kategori...</option>
                 {(form.jenis === 'pemasukan' ? KAT_PEMASUKAN : KAT_PENGELUARAN).map(k => (
                   <option key={k} value={k} style={{ textTransform: 'capitalize' }}>{k}</option>
                 ))}
               </select>
-              <input className="inp" required value={form.judul} onChange={e => setForm(f => ({ ...f, judul: e.target.value }))} placeholder="Keterangan singkat..." />
-              <input className="inp" type="number" required min={1} value={form.nominal} onChange={e => setForm(f => ({ ...f, nominal: e.target.value }))} placeholder="Nominal (Rp)" />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Keterangan Singkat *</label>
+              <input className="inp" required value={form.judul} onChange={e => setForm(f => ({ ...f, judul: e.target.value }))} placeholder="mis. Iuran bulan Oktober" />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Nominal (Rp) *</label>
+              <input className="inp" type="number" required min={1} value={form.nominal} onChange={e => setForm(f => ({ ...f, nominal: e.target.value }))} placeholder="0" />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Tanggal *</label>
               <input className="inp" type="date" required value={form.tanggal} onChange={e => setForm(f => ({ ...f, tanggal: e.target.value }))} />
-              <textarea className="inp" rows={2} value={form.keterangan} onChange={e => setForm(f => ({ ...f, keterangan: e.target.value }))} placeholder="Catatan tambahan (opsional)..." style={{ resize: 'vertical' }} />
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Catatan Tambahan</label>
+              <textarea className="inp" rows={2} value={form.keterangan} onChange={e => setForm(f => ({ ...f, keterangan: e.target.value }))} placeholder="Opsional..." style={{ resize: 'vertical' }} />
               <button className="btn-primary" type="submit" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
                 {loading ? 'Menyimpan...' : 'Simpan'}
               </button>

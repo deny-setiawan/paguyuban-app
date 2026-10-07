@@ -199,7 +199,7 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
             <div className="kv"><span className="k">Agama</span><span className="v">{warga.agama || '—'}</span></div>
             <div className="kv"><span className="k">Pekerjaan</span><span className="v">{warga.pekerjaan || '—'}</span></div>
             <div className="kv"><span className="k">Status hunian</span><span className="v">{warga.statusHunian || '—'}</span></div>
-            <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Jumlah jiwa</span><span className="v">{warga.jumlahJiwa ?? '—'}</span></div>
+            <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Jumlah jiwa</span><span className="v">{anggota.length}</span></div>
           </div>
 
           {/* Anggota Keluarga */}

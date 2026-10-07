@@ -28,7 +28,7 @@ export default async function KasPage() {
     .limit(100)
 
   const saldoKas = list[0]?.saldoSetelah ?? 0
-  const canEdit = ['ketua', 'bendahara', 'admin'].includes(payload.role)
+  const canEdit = true // semua role dengan akses kasRt dapat catat transaksi
 
   return (
     <>

@@ -156,7 +156,7 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
         {kepalaKk.pekerjaan && <div className="kv"><span className="k">Pekerjaan</span><span className="v">{kepalaKk.pekerjaan}</span></div>}
         {kepalaKk.statusHunian && <div className="kv"><span className="k">Status Hunian</span><span className="v">{kepalaKk.statusHunian}</span></div>}
         {kepalaKk.tanggalMenempati && <div className="kv"><span className="k">Tgl. Menempati</span><span className="v">{kepalaKk.tanggalMenempati}</span></div>}
-        <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Jumlah Jiwa</span><span className="v">{kepalaKk.jumlahJiwa ?? '-'}</span></div>
+        <div className="kv" style={{ borderBottom: 'none' }}><span className="k">Jumlah Jiwa</span><span className="v">{allAnggota.length}</span></div>
       </div>
 
       <div className="sec-h" style={{ marginBottom: 12 }}>

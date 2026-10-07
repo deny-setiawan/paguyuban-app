@@ -2,7 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown } from 'lucide-react'
+import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown, ExternalLink } from 'lucide-react'
+
+function detectDocType(url: string): 'image' | 'pdf' {
+  if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
+  if (url.includes('drive.google.com/file/d/')) return 'pdf'
+  return 'image'
+}
+
+function getPdfSrc(url: string): string {
+  if (url.startsWith('data:')) return url
+  if (url.includes('drive.google.com/file/d/')) return url.replace('/view', '/preview').replace(/\/preview.*$/, '/preview')
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+}
 
 interface ProfileData {
   id: string
@@ -60,7 +72,11 @@ const ROLE_LABELS: Record<string, string> = {
 export default function ProfilClient({ profile, warga, anggota, rtName, fotoFiles }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
-  const [fotoModal, setFotoModal] = useState<string | null>(null)
+  const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
+
+  function openDoc(url: string) {
+    setDocModal({ url, type: detectDocType(url) })
+  }
   const [form, setForm] = useState({
     fullName: profile.fullName || '',
     noRumah: profile.noRumah || '',
@@ -224,16 +240,13 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
       {fotoFiles.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
           {fotoFiles.map((url, i) => {
-            const isImg = url.startsWith('data:image/') || url.includes('drive.google.com/uc') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+            const isPdf = detectDocType(url) === 'pdf'
             return (
-              <button key={i} onClick={() => setFotoModal(url)}
-                style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
-                {isImg
-                  ? <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                      <FileText size={24} color="var(--gray400)" />
-                      <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
-                    </div>
+              <button key={i} onClick={() => openDoc(url)}
+                style={{ border: `1.5px solid ${isPdf ? 'var(--red)' : 'var(--gray200)'}`, borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                {isPdf
+                  ? <><FileText size={28} color="var(--red)" /><span style={{ fontSize: 9, color: 'var(--red)', fontWeight: 700 }}>PDF</span></>
+                  : <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 }
               </button>
             )
@@ -246,15 +259,29 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
         </div>
       )}
 
-      {/* Foto lightbox */}
-      {fotoModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setFotoModal(null)}>
-          <button onClick={() => setFotoModal(null)}
-            style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <X size={18} />
-          </button>
-          <img src={fotoModal} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} />
+      {/* Dokumen modal (gambar atau PDF) */}
+      {docModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setDocModal(null)}>
+          <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
+            {docModal.type === 'pdf' && (
+              <button onClick={() => window.open(docModal.url, '_blank')}
+                style={{ background: 'white', border: 'none', borderRadius: 20, padding: '6px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <ExternalLink size={13} /> Buka
+              </button>
+            )}
+            <button onClick={() => setDocModal(null)}
+              style={{ background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={18} />
+            </button>
+          </div>
+          {docModal.type === 'image'
+            ? <img src={docModal.url} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+            : <div style={{ width: '94vw', height: '80vh', background: 'white', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                <iframe src={getPdfSrc(docModal.url)} style={{ flex: 1, border: 'none', width: '100%' }} title="Dokumen PDF" />
+                <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--gray400)', textAlign: 'center' }}>Jika PDF tidak tampil, klik Buka di atas</div>
+              </div>
+          }
         </div>
       )}
 

@@ -47,13 +47,32 @@ async function loadImgBase64(url: string): Promise<string | null> {
   }
 }
 
+async function loadPdfBytes(url: string): Promise<ArrayBuffer | null> {
+  try {
+    if (url.startsWith('data:')) {
+      const base64 = url.split(',')[1]
+      if (!base64) return null
+      const binary = atob(base64)
+      const arr = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i)
+      return arr.buffer
+    }
+    const res = await fetch(url)
+    if (!res.ok) return null
+    return await res.arrayBuffer()
+  } catch {
+    return null
+  }
+}
+
+// Returns list of PDF attachment URLs found in this KK's fotoFiles
 async function addKkPage(
   doc: import('jspdf').jsPDF,
   autoTable: (doc: import('jspdf').jsPDF, opts: object) => void,
   kk: KkExportData,
   rtName: string,
   isFirst: boolean,
-) {
+): Promise<string[]> {
   if (!isFirst) doc.addPage()
 
   const margin = 14
@@ -147,12 +166,11 @@ async function addKkPage(
 
   // ── Lampiran Dokumen — halaman tersendiri ──
   const fotoFiles = kk.fotoFiles ?? []
-  if (fotoFiles.length === 0) return
+  if (fotoFiles.length === 0) return []
 
   doc.addPage()
   y = margin
 
-  // Header halaman lampiran
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.text('LAMPIRAN DOKUMEN', pageW / 2, y, { align: 'center' })
@@ -167,9 +185,9 @@ async function addKkPage(
   doc.line(margin, y, pageW - margin, y)
   y += 8
 
-  // Gambar: full-width satu per baris; PDF: placeholder box dengan klik-link
   const imgW = pageW - 2 * margin
   const MAX_IMG_H = 160
+  const collectedPdfUrls: string[] = []
 
   for (let fi = 0; fi < fotoFiles.length; fi++) {
     const url = fotoFiles[fi]
@@ -179,32 +197,22 @@ async function addKkPage(
     const isPdf = !imgData.startsWith('data:image/')
 
     if (isPdf) {
+      collectedPdfUrls.push(url)
+      // Placeholder that notes the PDF is embedded at the end
       const boxH = 24
       if (y + boxH + 6 > pageH - 10) { doc.addPage(); y = margin }
-
       doc.setDrawColor(180, 40, 40)
       doc.setFillColor(255, 245, 245)
       doc.setLineWidth(0.5)
       doc.rect(margin, y, imgW, boxH, 'FD')
-
       doc.setFontSize(9)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(180, 40, 40)
       doc.text(`[ PDF ] Dokumen ${fi + 1}`, pageW / 2, y + 9, { align: 'center' })
-
-      const isLink = url.startsWith('http')
       doc.setFontSize(7.5)
       doc.setFont('helvetica', 'normal')
-      doc.setTextColor(isLink ? 0 : 120, isLink ? 80 : 120, isLink ? 200 : 120)
-      doc.text(
-        isLink ? 'Klik untuk membuka dokumen PDF' : '(dokumen PDF tersimpan lokal)',
-        pageW / 2, y + 18, { align: 'center' },
-      )
-      if (isLink) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(doc as any).link(margin, y, imgW, boxH, { url })
-      }
-
+      doc.setTextColor(80, 80, 80)
+      doc.text('Lihat halaman lampiran PDF di akhir dokumen ini', pageW / 2, y + 18, { align: 'center' })
       doc.setTextColor(0, 0, 0)
       doc.setDrawColor(0, 0, 0)
       y += boxH + 8
@@ -217,7 +225,6 @@ async function addKkPage(
 
       if (y + 14 + imgH > pageH - 10) { doc.addPage(); y = margin }
 
-      // Caption
       doc.setFontSize(8)
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(100, 100, 100)
@@ -230,15 +237,57 @@ async function addKkPage(
       y += imgH + 10
     }
   }
+
+  return collectedPdfUrls
 }
 
 async function buildDoc(kkList: KkExportData[], rtName: string, filename: string): Promise<PdfBuildResult> {
   const { default: jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF()
+
+  const allPdfUrls: string[] = []
   for (let i = 0; i < kkList.length; i++) {
-    await addKkPage(doc, autoTable, kkList[i], rtName, i === 0)
+    const pdfUrls = await addKkPage(doc, autoTable, kkList[i], rtName, i === 0)
+    allPdfUrls.push(...pdfUrls)
   }
+
+  // Merge PDF attachments as extra pages using pdf-lib
+  if (allPdfUrls.length > 0) {
+    try {
+      const { PDFDocument } = await import('pdf-lib')
+      const mainBytes = doc.output('arraybuffer')
+      const mainDoc = await PDFDocument.load(mainBytes)
+
+      for (const url of allPdfUrls) {
+        const pdfBytes = await loadPdfBytes(url)
+        if (!pdfBytes) continue
+        try {
+          const lampDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true })
+          const indices = lampDoc.getPageIndices()
+          if (indices.length === 0) continue
+          const copied = await mainDoc.copyPages(lampDoc, indices)
+          copied.forEach((p: import('pdf-lib').PDFPage) => mainDoc.addPage(p))
+        } catch { /* skip unreadable PDF */ }
+      }
+
+      const finalBytes = await mainDoc.save()
+      const blob = new Blob([finalBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const previewUrl = URL.createObjectURL(blob)
+      return {
+        previewUrl,
+        filename,
+        download: () => {
+          const a = document.createElement('a')
+          a.href = previewUrl
+          a.download = filename
+          a.click()
+        },
+        cleanup: () => URL.revokeObjectURL(previewUrl),
+      }
+    } catch { /* fallback to plain output if pdf-lib fails */ }
+  }
+
   const blob = doc.output('blob')
   const previewUrl = URL.createObjectURL(blob)
   return {

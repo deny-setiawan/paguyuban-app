@@ -24,6 +24,7 @@ interface SewaItem {
   jumlah: number | null
   inventarisId: string
   total: number | null
+  catatanSewa: string | null
 }
 
 interface RiwayatItem {
@@ -36,19 +37,22 @@ interface RiwayatItem {
   tglKembaliRencana: string | null
   jumlah: number | null
   total: number | null
+  catatanSewa: string | null
 }
 
 export default function InventarisKelolaClient({
   items,
   activeSewa,
   riwayat,
+  initialTab = 'inventaris',
 }: {
   items: InvItem[]
   activeSewa: SewaItem[]
   riwayat: RiwayatItem[]
+  initialTab?: 'inventaris' | 'sewa' | 'riwayat'
 }) {
   const [list, setList] = useState(items)
-  const [tab, setTab] = useState<'inventaris' | 'sewa' | 'riwayat'>('inventaris')
+  const [tab, setTab] = useState<'inventaris' | 'sewa' | 'riwayat'>(initialTab)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<InvItem | null>(null)
   const [loading, setLoading] = useState(false)
@@ -135,6 +139,7 @@ export default function InventarisKelolaClient({
           tglKembaliRencana: s.tglKembaliRencana,
           jumlah: s.jumlah,
           total: s.total,
+          catatanSewa: s.catatanSewa,
         }, ...prev])
         setList(prev => prev.map(i =>
           i.id === s.inventarisId ? { ...i, stok: (i.stok || 0) + (s.jumlah || 1) } : i
@@ -213,6 +218,7 @@ export default function InventarisKelolaClient({
                   <div className="pi-d">{s.penyewaNama}{s.penyewaHp ? ` · ${s.penyewaHp}` : ''}</div>
                   <div className="pi-d">Tgl sewa: {s.tglSewa}{s.tglKembaliRencana ? ` → ${s.tglKembaliRencana}` : ''}</div>
                   <div className="pi-d">Jumlah: {s.jumlah}{s.total ? ` · ${rupiah(s.total)}` : ''}</div>
+                  {s.catatanSewa && <div className="pi-d" style={{ fontStyle: 'italic', color: 'var(--gray600)' }}>"{s.catatanSewa}"</div>}
                   <button
                     style={{ marginTop: 8, height: 34, background: 'var(--g50)', color: 'var(--g700)', border: '1.5px solid var(--g200)', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}
                     disabled={kembalikanLoading === s.id}
@@ -242,7 +248,9 @@ export default function InventarisKelolaClient({
                   <div className="pi-t">{r.inventarisNama || '-'}</div>
                   <div className="pi-d">{r.penyewaNama}{r.penyewaHp ? ` · ${r.penyewaHp}` : ''}</div>
                   <div className="pi-d">Sewa: {r.tglSewa}{r.tglKembali ? ` → Kembali: ${r.tglKembali}` : ''}</div>
+                  {r.jumlah && r.jumlah > 1 ? <div className="pi-d">Jumlah: {r.jumlah}</div> : null}
                   {r.total ? <div className="pi-d">Total: {rupiah(r.total)}</div> : null}
+                  {r.catatanSewa && <div className="pi-d" style={{ fontStyle: 'italic', color: 'var(--gray600)' }}>"{r.catatanSewa}"</div>}
                 </div>
               </div>
             ))}

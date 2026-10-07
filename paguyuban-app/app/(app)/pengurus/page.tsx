@@ -91,7 +91,8 @@ export default async function PengurusPage() {
     (canAccess('wargaBaru', role, menuConfig) ? stats.pendingInvite : 0) +
     (canAccess('verifBayar', role, menuConfig) ? stats.pendingPayment : 0) +
     (canAccess('prosesSurat', role, menuConfig) ? stats.pendingSurat : 0) +
-    (canAccess('laporan', role, menuConfig) ? stats.pendingLaporan : 0)
+    (canAccess('laporan', role, menuConfig) ? stats.pendingLaporan : 0) +
+    (canAccess('inventaris', role, menuConfig) ? stats.activeSewa : 0)
 
   return (
     <>
@@ -174,6 +175,17 @@ export default async function PengurusPage() {
                   <div className="pi-body">
                     <div className="pi-t">Laporan Warga <span className="pill menunggu">{stats.pendingLaporan}</span></div>
                     <div className="pi-d">Laporan warga menunggu tanggapan</div>
+                  </div>
+                </div>
+              </Link>
+            )}
+            {canAccess('inventaris', role, menuConfig) && stats.activeSewa > 0 && (
+              <Link href="/pengurus/inventaris-kelola?tab=sewa">
+                <div className="peng-item">
+                  <div className="pi-ico" style={{ background: 'var(--gold-l)' }}><Package size={18} color="var(--gold)" /></div>
+                  <div className="pi-body">
+                    <div className="pi-t">Inventaris Sedang Disewa <span className="pill menunggu">{stats.activeSewa}</span></div>
+                    <div className="pi-d">Inventaris yang sedang disewa warga</div>
                   </div>
                 </div>
               </Link>

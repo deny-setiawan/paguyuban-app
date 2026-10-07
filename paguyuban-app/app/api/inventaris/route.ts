@@ -65,20 +65,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'sewa') {
-      const { inventarisId, penyewaNama, penyewaHp, jumlah = 1, tglSewa, tglKembaliRencana } = data
+      const { inventarisId, penyewaNama, penyewaHp, jumlah = 1, tglSewa, tglKembaliRencana, catatanSewa } = data
       if (!inventarisId || !penyewaNama || !tglSewa) {
         return NextResponse.json({ error: 'Data sewa tidak lengkap' }, { status: 400 })
       }
+      const qty = Math.max(1, Number(jumlah) || 1)
 
       // Check stok
       const [item] = await db.select().from(inventaris).where(eq(inventaris.id, inventarisId)).limit(1)
       if (!item) return NextResponse.json({ error: 'Barang tidak ditemukan' }, { status: 404 })
-      if ((item.stok || 0) < jumlah) {
+      if ((item.stok || 0) < qty) {
         return NextResponse.json({ error: `Stok hanya tersedia ${item.stok}` }, { status: 400 })
       }
 
       const { inventarisSewa } = await import('@/lib/db/schema')
-      const total = (item.hargaSewa || 0) * jumlah
+      const total = (item.hargaSewa || 0) * qty
       const [sewa] = await db.insert(inventarisSewa).values({
         inventarisId,
         inventarisNama: item.nama,
@@ -86,17 +87,18 @@ export async function POST(req: NextRequest) {
         penyewaNama: penyewaNama || profileName || 'Tamu',
         penyewaHp: penyewaHp || null,
         penyewaTipe: profileId ? 'Warga' : 'Tamu',
-        jumlah,
+        jumlah: qty,
         tglSewa,
         tglKembaliRencana: tglKembaliRencana || null,
         hargaSatuan: item.hargaSewa,
         total,
+        catatanSewa: catatanSewa || null,
         status: 'disewa',
       }).returning()
 
       // Decrement stok
       await db.update(inventaris)
-        .set({ stok: (item.stok || 1) - jumlah })
+        .set({ stok: (item.stok || 1) - qty })
         .where(eq(inventaris.id, inventarisId))
 
       // WA notification to penyewa
@@ -109,7 +111,7 @@ export async function POST(req: NextRequest) {
           if (cfg.inventarisSewa !== false) {
             const totalStr = total > 0 ? `\nTotal: *Rp ${total.toLocaleString('id-ID')}*` : ''
             const kembaliStr = tglKembaliRencana ? `\nRencana kembali: ${tglKembaliRencana}` : ''
-            const msg = `Halo *${penyewaNama}*! 📦\n\nPeminjaman *${item.nama}* (${jumlah}x) sudah tercatat dan akan segera diproses.${totalStr}\nTgl sewa: ${tglSewa}${kembaliStr}\n\nTerima kasih telah menggunakan fasilitas RT! 🙏`
+            const msg = `Halo *${penyewaNama}*! 📦\n\nPeminjaman *${item.nama}* (${qty}x) sudah tercatat dan akan segera diproses.${totalStr}\nTgl sewa: ${tglSewa}${kembaliStr}\n\nTerima kasih telah menggunakan fasilitas RT! 🙏`
             await sendWhatsAppMessage(phoneToJid(penyewaHp), msg)
           }
         } catch { /* jangan ganggu response utama */ }

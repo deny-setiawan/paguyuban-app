@@ -23,6 +23,7 @@ interface SewaItem {
   jumlah: number | null
   hargaSatuan: number | null
   total: number | null
+  catatanSewa: string | null
 }
 
 interface RiwayatItem {
@@ -32,6 +33,7 @@ interface RiwayatItem {
   tglKembali: string | null
   jumlah: number | null
   total: number | null
+  catatanSewa: string | null
 }
 
 interface Props {
@@ -48,6 +50,8 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
   const [sewaItem, setSewaItem] = useState<Item | null>(null)
   const [sewaNama, setSewaNama] = useState(profileName || '')
   const [sewaHp, setSewaHp] = useState(profilePhone || '')
+  const [sewaQty, setSewaQty] = useState(1)
+  const [sewaCatatan, setSewaCatatan] = useState('')
   const [sewaTgl, setSewaTgl] = useState('')
   const [sewaTglKembali, setSewaTglKembali] = useState('')
   const [loading, setLoading] = useState(false)
@@ -63,6 +67,7 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
 
   function openSewa(item: Item) {
     setSewaItem(item); setSewaNama(profileName || ''); setSewaHp(profilePhone || '')
+    setSewaQty(1); setSewaCatatan('')
     setSewaTgl(''); setSewaTglKembali(''); setMsg(''); setDone(false)
   }
 
@@ -76,14 +81,15 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'sewa', inventarisId: sewaItem.id,
-          penyewaNama: sewaNama, penyewaHp: sewaHp, jumlah: 1,
+          penyewaNama: sewaNama, penyewaHp: sewaHp, jumlah: sewaQty,
           tglSewa: sewaTgl, tglKembaliRencana: sewaTglKembali || null,
+          catatanSewa: sewaCatatan.trim() || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setDone(true)
-      setLocalItems(prev => prev.map(i => i.id === sewaItem.id ? { ...i, stok: (i.stok || 1) - 1 } : i))
+      setLocalItems(prev => prev.map(i => i.id === sewaItem.id ? { ...i, stok: (i.stok || sewaQty) - sewaQty } : i))
       // Reload page to get updated activeSewa
       window.location.reload()
     } catch (e: unknown) {
@@ -102,7 +108,7 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
       })
       if (res.ok) {
         setActiveSewa(prev => prev.filter(s => s.id !== sewaId))
-        setLocalItems(prev => prev.map(i => i.id === inventarisId ? { ...i, stok: (i.stok || 0) + 1 } : i))
+        setLocalItems(prev => prev.map(i => i.id === inventarisId ? { ...i, stok: (i.stok || 0) + (sewaToReturn?.jumlah || 1) } : i))
         if (sewaToReturn) {
           setRiwayatList(prev => [{
             id: sewaToReturn.id,
@@ -111,6 +117,7 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
             tglKembali: today,
             jumlah: sewaToReturn.jumlah,
             total: sewaToReturn.total,
+            catatanSewa: sewaToReturn.catatanSewa,
           }, ...prev])
         }
       }
@@ -162,6 +169,12 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
             <input className="rl-in" placeholder="Nama lengkap" value={sewaNama} onChange={e => setSewaNama(e.target.value)} />
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>No. HP / WhatsApp</label>
             <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={sewaHp} onChange={e => setSewaHp(e.target.value)} />
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Jumlah (maks. {sewaItem.stok ?? 0}) *</label>
+            <input className="rl-in" type="number" min={1} max={sewaItem.stok ?? 1} value={sewaQty}
+              onChange={e => setSewaQty(Math.max(1, Math.min(sewaItem.stok ?? 1, Number(e.target.value) || 1)))} />
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Sewa Untuk Apa</label>
+            <textarea className="rl-in" rows={2} placeholder="Contoh: hajatan nikah, arisan RT, dll." value={sewaCatatan}
+              onChange={e => setSewaCatatan(e.target.value)} style={{ resize: 'vertical', fontFamily: 'inherit', fontSize: 14 }} />
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Tanggal Sewa *</label>
             <input className="rl-in" type="date" value={sewaTgl} onChange={e => setSewaTgl(e.target.value)} />
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Rencana Tanggal Kembali</label>
@@ -283,7 +296,9 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
                       <Calendar size={11} />
                       {s.tglKembaliRencana ? <>Kembali: <b>{s.tglKembaliRencana}</b></> : 'Belum ada rencana kembali'}
                     </div>
+                    {s.jumlah && s.jumlah > 1 ? <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Jumlah: <b>{s.jumlah}</b></div> : null}
                     {s.total ? <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Total: {rupiah(s.total)}</div> : null}
+                    {s.catatanSewa && <div style={{ fontSize: 12, color: 'var(--gray600)', marginTop: 4, fontStyle: 'italic' }}>"{s.catatanSewa}"</div>}
                   </div>
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
@@ -324,7 +339,9 @@ export default function InventarisClient({ items, activeSewa: initialSewa, riway
                     <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--gray800)' }}>{r.inventarisNama || '—'}</div>
                     <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Sewa: <b>{r.tglSewa}</b></div>
                     {r.tglKembali && <div style={{ fontSize: 12, color: 'var(--g600)', marginTop: 2 }}>Dikembalikan: <b>{r.tglKembali}</b></div>}
+                    {r.jumlah && r.jumlah > 1 ? <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Jumlah: <b>{r.jumlah}</b></div> : null}
                     {r.total ? <div style={{ fontSize: 12, color: 'var(--gray500)', marginTop: 2 }}>Total: {rupiah(r.total)}</div> : null}
+                    {r.catatanSewa && <div style={{ fontSize: 12, color: 'var(--gray600)', marginTop: 4, fontStyle: 'italic' }}>"{r.catatanSewa}"</div>}
                   </div>
                 </div>
               </div>

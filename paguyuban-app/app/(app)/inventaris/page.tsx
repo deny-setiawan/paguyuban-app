@@ -30,6 +30,7 @@ export default async function InventarisPage() {
       tglKembali: inventarisSewa.tglKembali,
       jumlah: inventarisSewa.jumlah,
       total: inventarisSewa.total,
+      catatanSewa: inventarisSewa.catatanSewa,
     }).from(inventarisSewa)
       .where(and(eq(inventarisSewa.penyewaId, profile.id), eq(inventarisSewa.status, 'dikembalikan')))
       .orderBy(desc(inventarisSewa.tglKembali))
@@ -60,8 +61,17 @@ export default async function InventarisPage() {
           jumlah: s.jumlah,
           hargaSatuan: s.hargaSatuan,
           total: s.total,
+          catatanSewa: s.catatanSewa,
         }))}
-        riwayat={riwayat}
+        riwayat={riwayat.map(r => ({
+          id: r.id,
+          inventarisNama: r.inventarisNama,
+          tglSewa: r.tglSewa,
+          tglKembali: r.tglKembali,
+          jumlah: r.jumlah,
+          total: r.total,
+          catatanSewa: r.catatanSewa,
+        }))}
         profileId={profile.id}
         profileName={profile.fullName}
         profilePhone={profile.phone}

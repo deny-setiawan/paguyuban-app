@@ -248,6 +248,7 @@ export const inventarisSewa = pgTable('inventaris_sewa', {
   tglKembali: text('tgl_kembali'),
   hargaSatuan: integer('harga_satuan'),
   total: integer('total'),
+  catatanSewa: text('catatan_sewa'),
   status: statusSewaEnum('status').default('disewa').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })

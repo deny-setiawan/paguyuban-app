@@ -9,7 +9,7 @@ import { eq, desc } from 'drizzle-orm'
 import InventarisKelolaClient from './InventarisKelolaClient'
 import Link from 'next/link'
 
-export default async function InventarisKelolaPage() {
+export default async function InventarisKelolaPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const cookieStore = await cookies()
   const token = cookieStore.get('session')?.value
   if (!token) redirect('/')
@@ -21,6 +21,8 @@ export default async function InventarisKelolaPage() {
         .then(r => (r[0]?.menuConfig as MenuConfig) ?? null)
     : null
   if (!canAccess('inventaris', payload.role, menuConfig)) redirect('/pengurus')
+
+  const { tab: tabParam } = await searchParams
 
   const [items, activeSewa, riwayat] = await Promise.all([
     db.select().from(inventaris)
@@ -40,6 +42,7 @@ export default async function InventarisKelolaPage() {
       tglKembaliRencana: inventarisSewa.tglKembaliRencana,
       jumlah: inventarisSewa.jumlah,
       total: inventarisSewa.total,
+      catatanSewa: inventarisSewa.catatanSewa,
     }).from(inventarisSewa)
       .where(eq(inventarisSewa.status, 'dikembalikan'))
       .orderBy(desc(inventarisSewa.tglKembali))
@@ -53,6 +56,7 @@ export default async function InventarisKelolaPage() {
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <InventarisKelolaClient
+        initialTab={tabParam === 'sewa' ? 'sewa' : tabParam === 'riwayat' ? 'riwayat' : 'inventaris'}
         items={items.map(i => ({
           id: i.id,
           nama: i.nama,
@@ -72,6 +76,7 @@ export default async function InventarisKelolaPage() {
           jumlah: s.jumlah,
           inventarisId: s.inventarisId,
           total: s.total,
+          catatanSewa: s.catatanSewa,
         }))}
         riwayat={riwayat}
       />

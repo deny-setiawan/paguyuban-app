@@ -129,7 +129,7 @@ export async function PATCH(req: NextRequest) {
           if (cfg.wargaDiterima !== false) {
             const rtName = rtData?.namaRt || 'RT'
             const msg = `Halo *${invite.nama}*! 👋\n\nPendaftaran Data Warga Anda sudah *diterima* oleh pengurus *${rtName}*.\n\nAnda bisa login menggunakan nomor yang terdaftar di aplikasi:\nhttps://app.paguyubanpkrpepe.my.id/\n\n✅ Selamat bergabung!`
-            sendWhatsAppMessage(phoneToJid(profData.phone), msg).catch(() => {})
+            await sendWhatsAppMessage(phoneToJid(profData.phone), msg)
           }
         }
       } catch { /* jangan ganggu response utama */ }

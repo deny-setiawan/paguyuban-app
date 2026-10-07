@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
           const msg = jenis === 'pemutakhiran_warga'
             ? `Halo *${namaWarga}*! 👋\n\nData *pemutakhiran warga* Anda sudah *diterima* dan akan diverifikasi oleh pengurus RT dalam *1×24 jam*.\n\nKami akan menginformasikan melalui WhatsApp ini ketika akun Anda telah aktif. 🏡`
             : `Halo *${namaWarga}*! 👋\n\nTerima kasih telah mendaftar sebagai warga baru! 🎉\n\nData *pendaftaran* Anda sudah *diterima* dan akan diverifikasi oleh pengurus RT dalam *1×24 jam*.\n\nKami akan menginformasikan melalui WhatsApp ini ketika akun Anda telah aktif dan siap digunakan. 🏡`
-          sendWhatsAppMessage(phoneToJid(normalizePhone(phone)), msg).catch(() => {})
+          await sendWhatsAppMessage(phoneToJid(normalizePhone(phone)), msg)
         }
       } catch { /* non-blocking */ }
     }

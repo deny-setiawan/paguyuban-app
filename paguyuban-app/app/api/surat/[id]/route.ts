@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           const statusText = status === 'diproses' ? 'sedang *diproses*' : 'sudah *selesai*'
           const extra = status === 'selesai' ? '\n\nSilakan hubungi pengurus RT untuk pengambilan surat.' : ''
           const msg = `Halo${nama}! 📄\n\nPengajuan surat *${suratData.jenis}* Anda ${statusText} oleh pengurus RT.${extra}`
-          sendWhatsAppMessage(phoneToJid(profData.phone), msg).catch(() => {})
+          await sendWhatsAppMessage(phoneToJid(profData.phone), msg)
         }
       }
     } catch { /* jangan ganggu response utama */ }

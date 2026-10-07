@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         if (cfg.laporanUpdate !== false) {
           const statusText = status === 'diproses' ? 'sedang *diproses*' : 'telah *diselesaikan*'
           const msg = `Halo! 📋\n\nLaporan Anda:\n*${laporan.judul}*\n\n${statusText} oleh pengurus RT.\n\nTerima kasih telah melaporkan! 🙏`
-          sendWhatsAppMessage(phoneToJid(profData.phone), msg).catch(() => {})
+          await sendWhatsAppMessage(phoneToJid(profData.phone), msg)
         }
       }
     } catch { /* jangan ganggu response utama */ }

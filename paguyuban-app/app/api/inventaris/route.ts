@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
             const totalStr = total > 0 ? `\nTotal: *Rp ${total.toLocaleString('id-ID')}*` : ''
             const kembaliStr = tglKembaliRencana ? `\nRencana kembali: ${tglKembaliRencana}` : ''
             const msg = `Halo *${penyewaNama}*! 📦\n\nPeminjaman *${item.nama}* (${jumlah}x) sudah tercatat dan akan segera diproses.${totalStr}\nTgl sewa: ${tglSewa}${kembaliStr}\n\nTerima kasih telah menggunakan fasilitas RT! 🙏`
-            sendWhatsAppMessage(phoneToJid(penyewaHp), msg).catch(() => {})
+            await sendWhatsAppMessage(phoneToJid(penyewaHp), msg)
           }
         } catch { /* jangan ganggu response utama */ }
       }

@@ -6,8 +6,7 @@ import { wargaInvites, warga, profiles, rtGroups } from '@/lib/db/schema'
 import { eq, desc, and } from 'drizzle-orm'
 import { sendWhatsAppMessage, phoneToJid, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-client'
 import type { WaNotifConfig } from '@/lib/wa-client'
-
-const APPROVE_ROLES = ['ketua', 'admin']
+import { canAccess, type MenuConfig } from '@/lib/menu-config'
 
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies()
@@ -42,7 +41,14 @@ export async function PATCH(req: NextRequest) {
   const token = cookieStore.get('session')?.value
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const payload = await verifyJwt(token)
-  if (!payload || !APPROVE_ROLES.includes(payload.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!payload || !payload.rtGroupId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const [rtRow] = await db.select({ menuConfig: rtGroups.menuConfig }).from(rtGroups)
+    .where(eq(rtGroups.id, payload.rtGroupId)).limit(1)
+  const rtMenuConfig = (rtRow?.menuConfig as MenuConfig | null) ?? null
+  if (!canAccess('wargaBaru', payload.role, rtMenuConfig)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { id, action } = await req.json()
   if (!id || !action) return NextResponse.json({ error: 'id dan action wajib' }, { status: 400 })

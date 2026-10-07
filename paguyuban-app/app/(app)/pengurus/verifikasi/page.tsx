@@ -38,7 +38,7 @@ export default async function VerifikasiPage() {
     .orderBy(desc(wargaInvites.createdAt))
     .limit(100)
 
-  const canApprove = ['ketua', 'admin'].includes(payload.role)
+  const canApprove = canAccess('wargaBaru', payload.role, menuConfig)
 
   return (
     <>

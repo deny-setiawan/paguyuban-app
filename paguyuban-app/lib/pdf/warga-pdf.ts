@@ -110,20 +110,21 @@ async function addKkPage(
 
   const anggotaRows = kk.anggota.map(a => [
     a.namaLengkap,
+    a.hubunganKeluarga || (a.kkStatus === 'kepala_kk' ? 'Kepala Keluarga' : '-'),
     a.jenisKelamin === 'L' ? 'Laki-laki' : a.jenisKelamin === 'P' ? 'Perempuan' : '-',
     a.agama || '-',
   ])
 
-  if (anggotaRows.length === 0) anggotaRows.push(['-', '-', '-'])
+  if (anggotaRows.length === 0) anggotaRows.push(['-', '-', '-', '-'])
 
   autoTable(doc, {
     startY: y,
-    head: [['Nama Anggota Keluarga', 'Jenis Kelamin', 'Agama']],
+    head: [['Nama Anggota Keluarga', 'Hubungan', 'Jenis Kelamin', 'Agama']],
     body: anggotaRows,
     margin: { left: margin, right: margin },
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [29, 78, 216], fontStyle: 'bold' },
-    columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 38 }, 2: { cellWidth: 35 } },
+    columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 32 }, 2: { cellWidth: 30 }, 3: { cellWidth: 28 } },
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,29 +155,52 @@ async function addKkPage(
     y += 6
 
     const imgW = 60
+    const PDF_BOX_H = 42
     const imgPerRow = Math.floor((pageW - 2 * margin + 5) / (imgW + 5))
     let col = 0
+    let rowMaxH = 0
 
-    for (const url of kk.fotoFiles) {
+    for (let fi = 0; fi < kk.fotoFiles.length; fi++) {
+      const url = kk.fotoFiles[fi]
       const imgData = await loadImgBase64(url)
       if (!imgData) continue
-      if (!imgData.startsWith('data:image/')) continue // skip PDF/non-image files
 
-      let imgH: number
-      try {
-        const props = doc.getImageProperties(imgData)
-        imgH = Math.round((props.height * imgW) / props.width)
-      } catch { continue }
+      const isPdf = !imgData.startsWith('data:image/')
 
-      if (col === 0 && y + imgH + 5 > pageH - 10) { doc.addPage(); y = margin }
-
-      const x = margin + col * (imgW + 5)
-      const fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      try { doc.addImage(imgData, fmt, x, y, imgW, imgH) } catch { /* skip corrupt */ }
+      if (isPdf) {
+        if (col === 0 && y + PDF_BOX_H + 5 > pageH - 10) { doc.addPage(); y = margin }
+        const x = margin + col * (imgW + 5)
+        doc.setDrawColor(180, 40, 40)
+        doc.setFillColor(255, 245, 245)
+        doc.setLineWidth(0.5)
+        doc.rect(x, y, imgW, PDF_BOX_H, 'FD')
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(180, 40, 40)
+        doc.text('[ PDF ]', x + imgW / 2, y + PDF_BOX_H / 2 - 4, { align: 'center' })
+        doc.setFontSize(7.5)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Dokumen ${fi + 1}`, x + imgW / 2, y + PDF_BOX_H / 2 + 5, { align: 'center' })
+        doc.setTextColor(0, 0, 0)
+        doc.setDrawColor(0, 0, 0)
+        rowMaxH = Math.max(rowMaxH, PDF_BOX_H)
+      } else {
+        let imgH: number
+        try {
+          const props = doc.getImageProperties(imgData)
+          imgH = Math.round((props.height * imgW) / props.width)
+        } catch { continue }
+        if (col === 0 && y + imgH + 5 > pageH - 10) { doc.addPage(); y = margin }
+        const x = margin + col * (imgW + 5)
+        const fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+        try { doc.addImage(imgData, fmt, x, y, imgW, imgH) } catch { continue }
+        rowMaxH = Math.max(rowMaxH, imgH)
+      }
 
       col++
-      if (col >= imgPerRow) { col = 0; y += imgH + 5 }
+      if (col >= imgPerRow) { col = 0; y += rowMaxH + 5; rowMaxH = 0 }
     }
+    if (col > 0) y += rowMaxH + 5
   }
 }
 

@@ -144,63 +144,91 @@ async function addKkPage(
   const stLines = doc.splitTextToSize(statement, pageW - 2 * margin)
   if (y + stLines.length * 5 > pageH - 20) { doc.addPage(); y = margin }
   doc.text(stLines, margin, y)
-  y += stLines.length * 5 + 10
 
-  // ── Foto Dokumen ──
-  if (kk.fotoFiles && kk.fotoFiles.length > 0) {
-    if (y + 10 > pageH - 20) { doc.addPage(); y = margin }
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(9.5)
-    doc.text('Lampiran Foto Dokumen:', margin, y)
-    y += 6
+  // ── Lampiran Dokumen — halaman tersendiri ──
+  const fotoFiles = kk.fotoFiles ?? []
+  if (fotoFiles.length === 0) return
 
-    const imgW = 60
-    const PDF_BOX_H = 42
-    const imgPerRow = Math.floor((pageW - 2 * margin + 5) / (imgW + 5))
-    let col = 0
-    let rowMaxH = 0
+  doc.addPage()
+  y = margin
 
-    for (let fi = 0; fi < kk.fotoFiles.length; fi++) {
-      const url = kk.fotoFiles[fi]
-      const imgData = await loadImgBase64(url)
-      if (!imgData) continue
+  // Header halaman lampiran
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.text('LAMPIRAN DOKUMEN', pageW / 2, y, { align: 'center' })
+  y += 6
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(80, 80, 80)
+  doc.text(`No. ${kk.noRumah || '-'} — ${kepala?.namaLengkap || '-'}`, pageW / 2, y, { align: 'center' })
+  doc.setTextColor(0, 0, 0)
+  y += 5
+  doc.setLineWidth(0.3)
+  doc.line(margin, y, pageW - margin, y)
+  y += 8
 
-      const isPdf = !imgData.startsWith('data:image/')
+  // Gambar: full-width satu per baris; PDF: placeholder box dengan klik-link
+  const imgW = pageW - 2 * margin
+  const MAX_IMG_H = 160
 
-      if (isPdf) {
-        if (col === 0 && y + PDF_BOX_H + 5 > pageH - 10) { doc.addPage(); y = margin }
-        const x = margin + col * (imgW + 5)
-        doc.setDrawColor(180, 40, 40)
-        doc.setFillColor(255, 245, 245)
-        doc.setLineWidth(0.5)
-        doc.rect(x, y, imgW, PDF_BOX_H, 'FD')
-        doc.setFontSize(9)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(180, 40, 40)
-        doc.text('[ PDF ]', x + imgW / 2, y + PDF_BOX_H / 2 - 4, { align: 'center' })
-        doc.setFontSize(7.5)
-        doc.setFont('helvetica', 'normal')
-        doc.text(`Dokumen ${fi + 1}`, x + imgW / 2, y + PDF_BOX_H / 2 + 5, { align: 'center' })
-        doc.setTextColor(0, 0, 0)
-        doc.setDrawColor(0, 0, 0)
-        rowMaxH = Math.max(rowMaxH, PDF_BOX_H)
-      } else {
-        let imgH: number
-        try {
-          const props = doc.getImageProperties(imgData)
-          imgH = Math.round((props.height * imgW) / props.width)
-        } catch { continue }
-        if (col === 0 && y + imgH + 5 > pageH - 10) { doc.addPage(); y = margin }
-        const x = margin + col * (imgW + 5)
-        const fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-        try { doc.addImage(imgData, fmt, x, y, imgW, imgH) } catch { continue }
-        rowMaxH = Math.max(rowMaxH, imgH)
+  for (let fi = 0; fi < fotoFiles.length; fi++) {
+    const url = fotoFiles[fi]
+    const imgData = await loadImgBase64(url)
+    if (!imgData) continue
+
+    const isPdf = !imgData.startsWith('data:image/')
+
+    if (isPdf) {
+      const boxH = 24
+      if (y + boxH + 6 > pageH - 10) { doc.addPage(); y = margin }
+
+      doc.setDrawColor(180, 40, 40)
+      doc.setFillColor(255, 245, 245)
+      doc.setLineWidth(0.5)
+      doc.rect(margin, y, imgW, boxH, 'FD')
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(180, 40, 40)
+      doc.text(`[ PDF ] Dokumen ${fi + 1}`, pageW / 2, y + 9, { align: 'center' })
+
+      const isLink = url.startsWith('http')
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(isLink ? 0 : 120, isLink ? 80 : 120, isLink ? 200 : 120)
+      doc.text(
+        isLink ? 'Klik untuk membuka dokumen PDF' : '(dokumen PDF tersimpan lokal)',
+        pageW / 2, y + 18, { align: 'center' },
+      )
+      if (isLink) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(doc as any).link(margin, y, imgW, boxH, { url })
       }
 
-      col++
-      if (col >= imgPerRow) { col = 0; y += rowMaxH + 5; rowMaxH = 0 }
+      doc.setTextColor(0, 0, 0)
+      doc.setDrawColor(0, 0, 0)
+      y += boxH + 8
+    } else {
+      let imgH: number
+      try {
+        const props = doc.getImageProperties(imgData)
+        imgH = Math.min(Math.round((props.height * imgW) / props.width), MAX_IMG_H)
+      } catch { continue }
+
+      if (y + 14 + imgH > pageH - 10) { doc.addPage(); y = margin }
+
+      // Caption
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Dokumen ${fi + 1}`, margin, y)
+      doc.setTextColor(0, 0, 0)
+      y += 5
+
+      const fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+      try { doc.addImage(imgData, fmt, margin, y, imgW, imgH) } catch { continue }
+      y += imgH + 10
     }
-    if (col > 0) y += rowMaxH + 5
   }
 }
 

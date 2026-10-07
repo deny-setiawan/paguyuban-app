@@ -356,12 +356,12 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                 <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 8, letterSpacing: 0.5 }}>EDIT DATA</div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Nama Lengkap</label>
                 <input className="inp" value={editForm.namaLengkap || ''} onChange={e => setEditForm(f => ({ ...f, namaLengkap: e.target.value }))} placeholder="Nama lengkap sesuai KTP" />
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>NIK</label>
-                <input className="inp" value={editForm.nik || ''} onChange={e => setEditForm(f => ({ ...f, nik: e.target.value }))} placeholder="16 digit NIK" maxLength={16} inputMode="numeric" />
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>No. KK</label>
-                <input className="inp" value={editForm.noKk || ''} onChange={e => setEditForm(f => ({ ...f, noKk: e.target.value }))} placeholder="16 digit No. KK" maxLength={16} inputMode="numeric" />
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>No. Rumah / Blok</label>
-                <input className="inp" value={editForm.noRumah || ''} onChange={e => setEditForm(f => ({ ...f, noRumah: e.target.value }))} placeholder="Mis. A-12 atau No. 5" />
+                <label style={{ fontSize: 11, fontWeight: 700, color: canDeleteKk ? 'var(--gray600)' : 'var(--gray400)', display: 'block', marginBottom: 3 }}>NIK {!canDeleteKk && <span style={{ fontWeight: 400, fontSize: 10 }}>(hanya admin)</span>}</label>
+                <input className="inp" value={editForm.nik || ''} onChange={e => setEditForm(f => ({ ...f, nik: e.target.value }))} placeholder="16 digit NIK" maxLength={16} inputMode="numeric" disabled={!canDeleteKk} style={{ opacity: canDeleteKk ? 1 : 0.5 }} />
+                <label style={{ fontSize: 11, fontWeight: 700, color: canDeleteKk ? 'var(--gray600)' : 'var(--gray400)', display: 'block', marginBottom: 3 }}>No. KK {!canDeleteKk && <span style={{ fontWeight: 400, fontSize: 10 }}>(hanya admin)</span>}</label>
+                <input className="inp" value={editForm.noKk || ''} onChange={e => setEditForm(f => ({ ...f, noKk: e.target.value }))} placeholder="16 digit No. KK" maxLength={16} inputMode="numeric" disabled={!canDeleteKk} style={{ opacity: canDeleteKk ? 1 : 0.5 }} />
+                <label style={{ fontSize: 11, fontWeight: 700, color: canDeleteKk ? 'var(--gray600)' : 'var(--gray400)', display: 'block', marginBottom: 3 }}>No. Rumah / Blok {!canDeleteKk && <span style={{ fontWeight: 400, fontSize: 10 }}>(hanya admin)</span>}</label>
+                <input className="inp" value={editForm.noRumah || ''} onChange={e => setEditForm(f => ({ ...f, noRumah: e.target.value }))} placeholder="Mis. A-12 atau No. 5" disabled={!canDeleteKk} style={{ opacity: canDeleteKk ? 1 : 0.5 }} />
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Tanggal Lahir</label>
                 <input className="inp" type="date" value={editForm.tanggalLahir || ''} onChange={e => setEditForm(f => ({ ...f, tanggalLahir: e.target.value }))} />
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Tanggal Menempati</label>

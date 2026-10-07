@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText } from 'lucide-react'
+import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText, ExternalLink } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
@@ -72,6 +72,12 @@ function kkToExportData(group: KKGroup): KkExportData {
   }
 }
 
+function getPdfSrc(url: string): string {
+  if (url.startsWith('data:')) return url
+  if (url.includes('drive.google.com/file/d/')) return url.replace('/view', '/preview').replace(/\/preview.*$/, '/preview')
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+}
+
 const PAGE_SIZE = 5
 
 export default function DataWargaClient({ items, rtName, canDeleteKk = false }: { items: WargaItem[]; rtName: string; canDeleteKk?: boolean }) {
@@ -95,7 +101,7 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   const [loading, setLoading] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; noRumah: string; nama: string } | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
-  const [fotoModal, setFotoModal] = useState<string | null>(null)
+  const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
   const [buildingKk, setBuildingKk] = useState<string | null>(null)
   const [buildingAll, setBuildingAll] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -109,9 +115,8 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   }
 
   function openDoc(url: string) {
-    const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)
-    if (isPdf) { window.open(url, '_blank'); return }
-    setFotoModal(url)
+    const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url) || url.includes('drive.google.com/file/d/')
+    setDocModal({ url, type: isPdf ? 'pdf' : 'image' })
   }
 
   async function handleExportKk(group: KKGroup) {
@@ -235,16 +240,29 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
         />
       )}
 
-      {/* Foto lightbox */}
-      {fotoModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setFotoModal(null)}
-        >
-          <button onClick={() => setFotoModal(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <X size={18} />
-          </button>
-          <img src={fotoModal} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} />
+      {/* Dokumen modal (gambar atau PDF) */}
+      {docModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setDocModal(null)}>
+          <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
+            {docModal.type === 'pdf' && (
+              <button onClick={() => window.open(docModal.url, '_blank')}
+                style={{ background: 'white', border: 'none', borderRadius: 20, padding: '6px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <ExternalLink size={13} /> Buka
+              </button>
+            )}
+            <button onClick={() => setDocModal(null)}
+              style={{ background: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={18} />
+            </button>
+          </div>
+          {docModal.type === 'image'
+            ? <img src={docModal.url} alt="Foto dokumen" style={{ maxWidth: '94vw', maxHeight: '86vh', borderRadius: 12, objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+            : <div style={{ width: '94vw', height: '80vh', background: 'white', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                <iframe src={getPdfSrc(docModal.url)} style={{ flex: 1, border: 'none', width: '100%' }} title="Dokumen PDF" />
+                <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--gray400)', textAlign: 'center' }}>Jika PDF tidak tampil, klik Buka di atas</div>
+              </div>
+          }
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
@@ -79,7 +79,17 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'warga' | 'kk'>('warga')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const sentinelRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const sentinelRef = useCallback((el: HTMLDivElement | null) => {
+    observerRef.current?.disconnect()
+    observerRef.current = null
+    if (!el) return
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(prev => prev + PAGE_SIZE)
+    }, { threshold: 0 })
+    obs.observe(el)
+    observerRef.current = obs
+  }, [])
   const [detail, setDetail] = useState<WargaItem | null>(null)
   const [editForm, setEditForm] = useState<Partial<WargaItem>>({})
   const [loading, setLoading] = useState(false)
@@ -92,16 +102,6 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
 
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [search, tab])
-
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) setVisibleCount(prev => prev + PAGE_SIZE)
-    }, { threshold: 0.1 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [tab])
 
   function closePdfPreview() {
     pdfPreview?.cleanup()

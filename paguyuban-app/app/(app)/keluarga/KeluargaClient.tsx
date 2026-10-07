@@ -38,8 +38,15 @@ interface Props {
 
 export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone, fotoFiles, rtName, kelahiranTerpakai, sakitByPerson, tahun }: Props) {
   const [building, setBuilding] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
   const [fotoModal, setFotoModal] = useState<string | null>(null)
+
+  function openDoc(url: string) {
+    const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)
+    if (isPdf) { window.open(url, '_blank'); return }
+    setFotoModal(url)
+  }
 
   function closePdfPreview() {
     pdfPreview?.cleanup()
@@ -49,6 +56,7 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
   async function handleExport() {
     if (!kepalaKk) return
     setBuilding(true)
+    setExportError(null)
     try {
       const { buildKkPdf } = await import('@/lib/pdf/warga-pdf')
       const exportData: KkExportData = {
@@ -77,6 +85,8 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
       }
       const result = await buildKkPdf(exportData, rtName)
       setPdfPreview(result)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : 'Gagal membuat PDF')
     } finally {
       setBuilding(false)
     }
@@ -111,7 +121,7 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
         />
       )}
 
-      <div className="sec-h" style={{ marginBottom: 12 }}>
+      <div className="sec-h" style={{ marginBottom: exportError ? 8 : 12 }}>
         <div className="t"><Users size={16} /> Data Kepala KK</div>
         <button
           onClick={handleExport}
@@ -120,6 +130,11 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
           <FileDown size={13} /> {building ? 'Membuat PDF...' : 'Export PDF'}
         </button>
       </div>
+      {exportError && (
+        <div style={{ background: 'var(--red-l)', color: 'var(--red)', borderRadius: 10, padding: '8px 14px', fontSize: 12, marginBottom: 10 }}>
+          {exportError}
+        </div>
+      )}
       <div className="peng-card" style={{ padding: '4px 14px', marginBottom: 20 }}>
         <div className="kv"><span className="k">Nama KK</span><span className="v">{kepalaKk.namaLengkap}</span></div>
         {kepalaKk.noKk && <div className="kv"><span className="k">No. KK</span><span className="v">{kepalaKk.noKk}</span></div>}
@@ -221,15 +236,16 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
       {fotoFiles.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
           {fotoFiles.map((url, i) => {
-            const isImg = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url) || url.startsWith('data:image/')
+            const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)
+            const isImg = !isPdf && (url.startsWith('data:image/') || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url) || url.startsWith('https://'))
             return (
-              <button key={i} onClick={() => setFotoModal(url)}
-                style={{ border: '1.5px solid var(--gray200)', borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
+              <button key={i} onClick={() => openDoc(url)}
+                style={{ border: `1.5px solid ${isPdf ? 'var(--red)' : 'var(--gray200)'}`, borderRadius: 10, overflow: 'hidden', aspectRatio: '1', padding: 0, cursor: 'pointer', background: 'var(--gray50)' }}>
                 {isImg
                   ? <img src={url} alt={`Dok ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                      <FileText size={24} color="var(--gray400)" />
-                      <span style={{ fontSize: 9, color: 'var(--gray500)' }}>Dok {i + 1}</span>
+                      <FileText size={24} color={isPdf ? 'var(--red)' : 'var(--gray400)'} />
+                      <span style={{ fontSize: 9, color: isPdf ? 'var(--red)' : 'var(--gray500)', fontWeight: isPdf ? 700 : 400 }}>{isPdf ? 'PDF' : `Dok ${i + 1}`}</span>
                     </div>
                 }
               </button>

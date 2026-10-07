@@ -126,8 +126,10 @@ async function addKkPage(
     columnStyles: { 0: { cellWidth: 'auto' }, 1: { cellWidth: 38 }, 2: { cellWidth: 35 } },
   })
 
-  // @ts-expect-error jspdf-autotable adds lastAutoTable
-  y = (doc.lastAutoTable?.finalY ?? y) + 10
+  const lastTable = typeof (doc as Record<string, unknown>).getLastAutoTable === 'function'
+    ? (doc as Record<string, () => { finalY?: number } | null>).getLastAutoTable()
+    : null
+  y = (lastTable?.finalY ?? y) + 10
 
   // ── Pernyataan ──
   const statusHunian = kepala?.statusHunian || 'milik sendiri'
@@ -158,14 +160,19 @@ async function addKkPage(
     for (const url of kk.fotoFiles) {
       const imgData = await loadImgBase64(url)
       if (!imgData) continue
+      if (!imgData.startsWith('data:image/')) continue // skip PDF/non-image files
 
-      const props = doc.getImageProperties(imgData)
-      const imgH = Math.round((props.height * imgW) / props.width)
+      let imgH: number
+      try {
+        const props = doc.getImageProperties(imgData)
+        imgH = Math.round((props.height * imgW) / props.width)
+      } catch { continue }
 
       if (col === 0 && y + imgH + 5 > pageH - 10) { doc.addPage(); y = margin }
 
       const x = margin + col * (imgW + 5)
-      try { doc.addImage(imgData, 'JPEG', x, y, imgW, imgH) } catch { /* skip corrupt */ }
+      const fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+      try { doc.addImage(imgData, fmt, x, y, imgW, imgH) } catch { /* skip corrupt */ }
 
       col++
       if (col >= imgPerRow) { col = 0; y += imgH + 5 }

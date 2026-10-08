@@ -88,7 +88,7 @@ export default function OtpPage() {
       if (!res.ok) { setError(data.error || 'Kode salah'); return }
 
       sessionStorage.removeItem('otp_phone')
-      const pengurusRoles = ['ketua', 'sekretaris', 'bendahara', 'admin']
+      const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
       if (pengurusRoles.includes(data.role)) {
         router.replace('/pengurus')
       } else {

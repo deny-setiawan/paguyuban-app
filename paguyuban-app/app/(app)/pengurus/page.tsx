@@ -35,10 +35,9 @@ export default async function PengurusPage() {
   const payload = await verifyJwt(token)
   if (!payload) redirect('/')
 
-  if (!ALL_PENGURUS.includes(payload.role)) redirect('/')
-
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, payload.sub)).limit(1)
   if (!profile) redirect('/')
+  // Guard sudah ada di pengurus/layout.tsx (cek DB role) — tidak perlu cek JWT role di sini
 
   let rt = null
   let menuConfig: MenuConfig | null = null
@@ -81,7 +80,7 @@ export default async function PengurusPage() {
     activeSewa: activeSewaRes[0]?.c ?? 0,
   }
 
-  const role = payload.role
+  const role = profile.role
   const roleInfo = ROLE_INFO[role] || { label: role, Icon: UserCheck }
   const { label: roleLabel, Icon: RoleIcon } = roleInfo
 

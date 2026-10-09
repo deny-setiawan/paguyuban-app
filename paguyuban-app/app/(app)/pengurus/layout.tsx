@@ -14,7 +14,7 @@ export default async function PengurusLayout({ children }: { children: React.Rea
   if (!token) redirect('/login')
 
   const payload = await verifyJwt(token)
-  if (!payload) redirect('/')
+  if (!payload) redirect('/login')
 
   // Cek DB role (bukan JWT) agar perubahan role oleh admin langsung berlaku
   // tanpa harus logout — mencegah redirect loop saat JWT role dan DB role tidak sinkron
@@ -24,7 +24,8 @@ export default async function PengurusLayout({ children }: { children: React.Rea
     .where(eq(profiles.id, payload.sub))
     .limit(1)
 
-  if (!profile || !PENGURUS_ROLES.includes(profile.role)) redirect('/')
+  // Redirect ke /beranda (bukan /) agar tidak terjadi loop /pengurus ↔ /
+  if (!profile || !PENGURUS_ROLES.includes(profile.role)) redirect('/beranda')
 
   // Jika JWT role berbeda dengan DB role, refresh token di background
   // agar API calls selanjutnya menggunakan role yang benar

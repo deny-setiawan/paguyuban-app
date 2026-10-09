@@ -89,10 +89,13 @@ export default function OtpPage() {
 
       sessionStorage.removeItem('otp_phone')
       const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+      // Gunakan hard navigation agar session cookie dari verify-otp
+      // sudah committed sebelum browser mengirim request berikutnya.
+      // router.replace() kadang memicu RSC request sebelum cookie tersedia.
       if (pengurusRoles.includes(data.role)) {
-        router.replace('/pengurus')
+        window.location.replace('/pengurus')
       } else {
-        router.replace('/')
+        window.location.replace('/')
       }
     } catch {
       setError('Terjadi kesalahan jaringan')

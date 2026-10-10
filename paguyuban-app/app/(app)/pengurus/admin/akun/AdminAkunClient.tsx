@@ -13,24 +13,24 @@ interface AkunItem {
   createdAt: string
 }
 
-const ROLES = ['warga', 'ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+const ROLES = ['warga', 'ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator', 'admin']
 const ROLE_LABEL: Record<string, string> = {
   warga: 'Warga', ketua: 'Ketua', wakil_ketua: 'Wakil Ketua',
   sekretaris: 'Sekretaris', bendahara: 'Bendahara',
   humas: 'Humas', lingkungan: 'Lingkungan', keamanan: 'Keamanan',
-  peralatan: 'Peralatan', admin: 'Admin',
+  peralatan: 'Peralatan', kordinator: 'Kordinator', admin: 'Admin',
 }
 const ROLE_COLOR: Record<string, string> = {
   warga: 'var(--gray100)', ketua: 'var(--g50)', wakil_ketua: 'var(--g50)',
   sekretaris: 'var(--blue-l)', bendahara: 'var(--gold-l)',
   humas: 'var(--orange-l)', lingkungan: 'var(--teal-l)', keamanan: 'var(--red-l)',
-  peralatan: 'var(--purple-l)', admin: 'var(--purple-l)',
+  peralatan: 'var(--purple-l)', kordinator: 'var(--blue-l)', admin: 'var(--purple-l)',
 }
 const ROLE_ICON_COLOR: Record<string, string> = {
   warga: 'var(--gray500)', ketua: 'var(--g600)', wakil_ketua: 'var(--g600)',
   sekretaris: 'var(--blue)', bendahara: 'var(--gold)',
   humas: 'var(--orange)', lingkungan: 'var(--teal)', keamanan: 'var(--red)',
-  peralatan: 'var(--purple)', admin: 'var(--purple)',
+  peralatan: 'var(--purple)', kordinator: 'var(--blue)', admin: 'var(--purple)',
 }
 
 export default function AdminAkunClient({ items, currentUserId }: { items: AkunItem[], currentUserId: string }) {

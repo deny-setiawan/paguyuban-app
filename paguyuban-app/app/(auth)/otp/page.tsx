@@ -64,7 +64,7 @@ export default function OtpPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Sandi salah'); return }
       sessionStorage.removeItem('otp_phone')
-      const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+      const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator', 'admin']
       router.replace(pengurusRoles.includes(data.role) ? '/pengurus' : '/')
     } catch {
       setError('Terjadi kesalahan jaringan')
@@ -88,7 +88,7 @@ export default function OtpPage() {
       if (!res.ok) { setError(data.error || 'Kode salah'); return }
 
       sessionStorage.removeItem('otp_phone')
-      const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+      const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator', 'admin']
       // Gunakan hard navigation agar session cookie dari verify-otp
       // sudah committed sebelum browser mengirim request berikutnya.
       // router.replace() kadang memicu RSC request sebelum cookie tersedia.

@@ -6,13 +6,13 @@ export type MenuConfig = Partial<Record<MenuKey, string[]>>
 
 export const CONFIGURABLE_ROLES = [
   'ketua', 'wakil_ketua', 'sekretaris', 'bendahara',
-  'humas', 'lingkungan', 'keamanan', 'peralatan',
+  'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator',
 ] as const
 
 export const ROLE_LABEL: Record<string, string> = {
   ketua: 'Ketua', wakil_ketua: 'Wakil Ketua', sekretaris: 'Sekretaris',
   bendahara: 'Bendahara', humas: 'Humas', lingkungan: 'Lingkungan',
-  keamanan: 'Keamanan', peralatan: 'Peralatan',
+  keamanan: 'Keamanan', peralatan: 'Peralatan', kordinator: 'Kordinator',
 }
 
 export const MENU_ITEMS: { key: MenuKey; label: string }[] = [
@@ -29,15 +29,15 @@ export const MENU_ITEMS: { key: MenuKey; label: string }[] = [
 ]
 
 export const DEFAULT_MENU_CONFIG: Record<MenuKey, string[]> = {
-  wargaBaru:   ['ketua', 'wakil_ketua', 'sekretaris', 'humas', 'lingkungan', 'keamanan', 'peralatan'],
-  prosesSurat: ['ketua', 'wakil_ketua', 'sekretaris'],
+  wargaBaru:   ['ketua', 'wakil_ketua', 'sekretaris', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator'],
+  prosesSurat: ['ketua', 'wakil_ketua', 'sekretaris', 'kordinator'],
   kasRt:       ['ketua', 'wakil_ketua', 'bendahara'],
   verifBayar:  ['ketua', 'wakil_ketua', 'bendahara'],
   tagihan:     ['ketua', 'wakil_ketua', 'bendahara'],
-  laporan:     ['ketua', 'wakil_ketua', 'sekretaris'],
-  dataWarga:   ['ketua', 'wakil_ketua', 'sekretaris', 'humas', 'lingkungan', 'keamanan', 'peralatan'],
-  pengumuman:  ['ketua', 'wakil_ketua', 'sekretaris'],
-  inventaris:  ['ketua', 'wakil_ketua'],
+  laporan:     ['ketua', 'wakil_ketua', 'sekretaris', 'kordinator'],
+  dataWarga:   ['ketua', 'wakil_ketua', 'sekretaris', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator'],
+  pengumuman:  ['ketua', 'wakil_ketua', 'sekretaris', 'kordinator'],
+  inventaris:  ['ketua', 'wakil_ketua', 'kordinator'],
   danaSosial:  ['ketua', 'wakil_ketua', 'bendahara'],
 }
 

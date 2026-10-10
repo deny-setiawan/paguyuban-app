@@ -6,7 +6,7 @@ import { profiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import TokenRefresher from '@/components/auth/TokenRefresher'
 
-const PENGURUS_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+const PENGURUS_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator', 'admin']
 
 export default async function PengurusLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()

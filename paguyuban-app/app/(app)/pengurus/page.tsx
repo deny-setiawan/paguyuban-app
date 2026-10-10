@@ -14,7 +14,7 @@ import {
   Home, Bell, Car, Zap, Wifi,
 } from 'lucide-react'
 
-const ALL_PENGURUS = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
+const ALL_PENGURUS = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator', 'admin']
 
 const ROLE_INFO: Record<string, { label: string; Icon: React.ElementType }> = {
   ketua:       { label: 'Ketua RT',          Icon: Crown },
@@ -25,6 +25,7 @@ const ROLE_INFO: Record<string, { label: string; Icon: React.ElementType }> = {
   lingkungan:  { label: 'Seksi Lingkungan',  Icon: Zap },
   keamanan:    { label: 'Seksi Keamanan',    Icon: Lock },
   peralatan:   { label: 'Seksi Peralatan',   Icon: Wrench },
+  kordinator:  { label: 'Kordinator',        Icon: Users },
   admin:       { label: 'Admin Sistem',      Icon: Shield },
 }
 

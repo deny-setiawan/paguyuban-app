@@ -33,9 +33,9 @@ export async function proxy(request: NextRequest) {
 
   // Guard pengurus routes
   if (pathname.startsWith('/pengurus')) {
-    const pengurusRoles = ['ketua', 'sekretaris', 'bendahara', 'admin']
+    const pengurusRoles = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'admin']
     if (!pengurusRoles.includes(payload.role)) {
-      return NextResponse.redirect(new URL('/', request.url))
+      return NextResponse.redirect(new URL('/beranda', request.url))
     }
   }
 

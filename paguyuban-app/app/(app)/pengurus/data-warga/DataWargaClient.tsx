@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText, ExternalLink } from 'lucide-react'
+import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText, ExternalLink, Plus } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
@@ -102,12 +102,20 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; noRumah: string; nama: string } | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
+  const [localFotoFiles, setLocalFotoFiles] = useState<string[]>([])
+  const [uploadingDocs, setUploadingDocs] = useState(false)
+  const [uploadDocError, setUploadDocError] = useState('')
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
   const [buildingKk, setBuildingKk] = useState<string | null>(null)
   const [buildingAll, setBuildingAll] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
 
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [search, tab])
+  useEffect(() => {
+    setLocalFotoFiles(detail?.fotoFiles ?? [])
+    setUploadDocError('')
+  }, [detail?.id])
 
   function closePdfPreview() {
     pdfPreview?.cleanup()
@@ -117,6 +125,46 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   function openDoc(url: string) {
     const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url) || url.includes('drive.google.com/file/d/')
     setDocModal({ url, type: isPdf ? 'pdf' : 'image' })
+  }
+
+  async function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!detail) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploadingDocs(true); setUploadDocError('')
+    try {
+      let urls: string[]
+      try {
+        const formData = new FormData()
+        files.forEach(f => formData.append('files', f))
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+        const uploadData = await uploadRes.json()
+        if (!uploadRes.ok) throw new Error(uploadData.error)
+        urls = uploadData.urls as string[]
+      } catch {
+        urls = await Promise.all(files.map(file => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error(`Gagal membaca file: ${file.name}`))
+          reader.readAsDataURL(file)
+        })))
+      }
+      const patchRes = await fetch(`/api/warga/${detail.id}/docs`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appendFotoUrls: urls }),
+      })
+      const patchData = await patchRes.json()
+      if (!patchRes.ok) throw new Error(patchData.error)
+      const newFiles = [...localFotoFiles, ...urls]
+      setLocalFotoFiles(newFiles)
+      setList(prev => prev.map(w => w.id === detail.id ? { ...w, fotoFiles: newFiles } : w))
+    } catch (e) {
+      setUploadDocError(e instanceof Error ? e.message : 'Gagal upload dokumen')
+    } finally {
+      setUploadingDocs(false)
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
+    }
   }
 
   async function handleExportKk(group: KKGroup) {
@@ -328,9 +376,9 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Image size={13} /> Foto Dokumen
               </div>
-              {detail.fotoFiles && detail.fotoFiles.length > 0 ? (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {detail.fotoFiles.map((url, i) => {
+              {localFotoFiles.length > 0 ? (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {localFotoFiles.map((url, i) => {
                     const isPdf = url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)
                     return (
                       <button key={i} onClick={() => openDoc(url)}
@@ -344,9 +392,25 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                   })}
                 </div>
               ) : (
-                <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 12 }}>
+                <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 12, marginBottom: 8 }}>
                   Tidak ada foto/dokumen terlampir
                 </div>
+              )}
+              {detail.source === 'warga' && (
+                <>
+                  <input ref={uploadInputRef} type="file" accept="image/*,.pdf" multiple style={{ display: 'none' }} onChange={handleDocUpload} />
+                  <button
+                    style={{ width: '100%', height: 44, border: '1.5px dashed var(--gray300)', borderRadius: 10, background: 'white', color: 'var(--gray500)', fontSize: 12, fontWeight: 600, cursor: uploadingDocs ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: uploadingDocs ? 0.6 : 1 }}
+                    disabled={uploadingDocs}
+                    onClick={() => uploadInputRef.current?.click()}>
+                    <Plus size={14} /> {uploadingDocs ? 'Mengupload...' : 'Tambah Dokumen'}
+                  </button>
+                  {uploadDocError && (
+                    <div style={{ marginTop: 6, background: 'var(--red-l)', color: 'var(--red)', borderRadius: 8, padding: '6px 12px', fontSize: 11 }}>
+                      {uploadDocError}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

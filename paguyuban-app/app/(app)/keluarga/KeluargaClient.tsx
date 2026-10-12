@@ -68,18 +68,33 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
     setUploadingDocs(true)
     setUploadDocError('')
     try {
-      const formData = new FormData()
-      files.forEach(f => formData.append('files', f))
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
-      const uploadData = await uploadRes.json()
-      if (!uploadRes.ok) throw new Error(uploadData.error)
+      let urls: string[]
+
+      // Coba upload ke Google Drive
+      try {
+        const formData = new FormData()
+        files.forEach(f => formData.append('files', f))
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+        const uploadData = await uploadRes.json()
+        if (!uploadRes.ok) throw new Error(uploadData.error)
+        urls = uploadData.urls as string[]
+      } catch {
+        // Fallback: simpan sebagai base64 jika Google Drive gagal
+        urls = await Promise.all(files.map(file => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error(`Gagal membaca file: ${file.name}`))
+          reader.readAsDataURL(file)
+        })))
+      }
+
       const patchRes = await fetch('/api/profil', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appendFotoUrls: uploadData.urls }),
+        body: JSON.stringify({ appendFotoUrls: urls }),
       })
       const patchData = await patchRes.json()
       if (!patchRes.ok) throw new Error(patchData.error)
-      setLocalFotoFiles(prev => [...prev, ...uploadData.urls])
+      setLocalFotoFiles(prev => [...prev, ...urls])
     } catch (e) {
       setUploadDocError(e instanceof Error ? e.message : 'Gagal upload dokumen')
     } finally {

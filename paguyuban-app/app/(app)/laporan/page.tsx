@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
 import { profiles, laporanWarga } from '@/lib/db/schema'
-import { eq, desc, alias } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import LaporanClient from './LaporanClient'
 
 export default async function LaporanPage() {

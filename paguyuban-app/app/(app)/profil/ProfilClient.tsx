@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown, ExternalLink, Upload, Check } from 'lucide-react'
+import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown, ExternalLink, Upload } from 'lucide-react'
 
 function detectDocType(url: string): 'image' | 'pdf' {
   if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
@@ -89,12 +89,6 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
   const [msg, setMsg] = useState('')
   const [logoutLoading, setLogoutLoading] = useState(false)
 
-  // Inline No. Rumah edit
-  const [localNoRumah, setLocalNoRumah] = useState(profile.noRumah)
-  const [editNoRumah, setEditNoRumah] = useState(false)
-  const [noRumahInput, setNoRumahInput] = useState('')
-  const [noRumahSaving, setNoRumahSaving] = useState(false)
-
   // Upload dokumen
   const [localFotoFiles, setLocalFotoFiles] = useState(fotoFiles)
   const [uploadingDocs, setUploadingDocs] = useState(false)
@@ -111,39 +105,10 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEditing(false)
-      setLocalNoRumah(form.noRumah.trim() || null)
       router.refresh()
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Gagal menyimpan profil')
     } finally { setLoading(false) }
-  }
-
-  async function saveNoRumah() {
-    setNoRumahSaving(true)
-    const res = await fetch('/api/profil', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, noRumah: noRumahInput }),
-    })
-    if (res.ok) {
-      const val = noRumahInput.trim() || null
-      setLocalNoRumah(val)
-      setForm(p => ({ ...p, noRumah: noRumahInput }))
-      setEditNoRumah(false)
-    }
-    setNoRumahSaving(false)
-  }
-
-  async function hapusNoRumah() {
-    setNoRumahSaving(true)
-    const res = await fetch('/api/profil', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, noRumah: '' }),
-    })
-    if (res.ok) {
-      setLocalNoRumah(null)
-      setForm(p => ({ ...p, noRumah: '' }))
-    }
-    setNoRumahSaving(false)
   }
 
   async function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -223,7 +188,9 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Nama Lengkap</label>
           <input className="rl-in" value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} placeholder="Nama lengkap" />
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>No. Rumah</label>
-          <input className="rl-in" value={form.noRumah} onChange={e => setForm(p => ({ ...p, noRumah: e.target.value }))} placeholder="Mis. A-12" />
+          <input className="rl-in" value={form.noRumah} readOnly disabled
+            style={{ background: 'var(--gray100)', color: 'var(--gray400)', cursor: 'not-allowed' }} />
+          <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: -6 }}>No. Rumah hanya bisa diubah oleh pengurus RT.</div>
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Email (opsional)</label>
           <input className="rl-in" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="email@contoh.com" />
           <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)' }}>Pekerjaan</label>
@@ -245,46 +212,7 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
           <div className="kv"><span className="k">Nama</span><span className="v">{profile.fullName || '—'}</span></div>
           <div className="kv"><span className="k">No. HP</span><span className="v">{profile.phone}</span></div>
 
-          {/* No. Rumah — inline edit/hapus */}
-          <div className="kv" style={{ alignItems: 'center' }}>
-            <span className="k">No. Rumah</span>
-            {editNoRumah ? (
-              <span style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
-                <input
-                  value={noRumahInput}
-                  onChange={e => setNoRumahInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveNoRumah(); if (e.key === 'Escape') setEditNoRumah(false) }}
-                  autoFocus
-                  placeholder="Mis. A-12"
-                  style={{ width: 90, height: 30, borderRadius: 8, border: '1.5px solid var(--g400)', padding: '0 8px', fontSize: 13, fontFamily: 'var(--f)', textAlign: 'right' }}
-                />
-                <button onClick={saveNoRumah} disabled={noRumahSaving}
-                  style={{ border: 'none', background: 'var(--g600)', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Check size={13} color="white" />
-                </button>
-                <button onClick={() => setEditNoRumah(false)}
-                  style={{ border: 'none', background: 'var(--gray200)', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <X size={13} />
-                </button>
-              </span>
-            ) : (
-              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <span className="v">{localNoRumah || '—'}</span>
-                <button onClick={() => { setEditNoRumah(true); setNoRumahInput(localNoRumah || '') }}
-                  title="Edit No. Rumah"
-                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 3, color: 'var(--g600)', display: 'flex', alignItems: 'center' }}>
-                  <Pencil size={12} />
-                </button>
-                {localNoRumah && (
-                  <button onClick={hapusNoRumah} disabled={noRumahSaving}
-                    title="Hapus No. Rumah"
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 3, color: 'var(--red)', display: 'flex', alignItems: 'center' }}>
-                    <X size={12} />
-                  </button>
-                )}
-              </span>
-            )}
-          </div>
+          <div className="kv"><span className="k">No. Rumah</span><span className="v">{profile.noRumah || '—'}</span></div>
 
           <div className="kv"><span className="k">Email</span><span className="v">{profile.email || '—'}</span></div>
           <div className="kv"><span className="k">RT</span><span className="v">{rtName}</span></div>

@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm'
 import { sendWhatsAppMessage, phoneToJid, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-client'
 import type { WaNotifConfig } from '@/lib/wa-client'
 
-const TANGGAP_ROLES = ['ketua', 'sekretaris', 'admin']
+const TANGGAP_ROLES = ['ketua', 'wakil_ketua', 'sekretaris', 'bendahara', 'humas', 'lingkungan', 'keamanan', 'peralatan', 'kordinator', 'admin']
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies()

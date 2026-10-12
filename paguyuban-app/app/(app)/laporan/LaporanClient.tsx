@@ -11,6 +11,7 @@ interface LaporanItem {
   isi: string | null
   status: string
   tanggapan: string | null
+  namaTanggapiOleh: string | null
   createdAt: string
 }
 
@@ -105,7 +106,9 @@ export default function LaporanClient({ laporan }: Props) {
                     {l.tanggapan && (
                       <div className="ib green" style={{ marginTop: 8, fontSize: 12 }}>
                         <MessageSquare size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <div><b>Tanggapan pengurus:</b> {l.tanggapan}</div>
+                        <div>
+                          <b>Tanggapan{l.namaTanggapiOleh ? ` dari ${l.namaTanggapiOleh}` : ' pengurus'}:</b> {l.tanggapan}
+                        </div>
                       </div>
                     )}
                     <div className="pi-time">{timeAgo(l.createdAt)}</div>

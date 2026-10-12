@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { laporanWarga, profiles, rtGroups } from '@/lib/db/schema'
 import { canAccess, type MenuConfig } from '@/lib/menu-config'
 import { FileText } from 'lucide-react'
-import { and, eq, inArray, desc } from 'drizzle-orm'
+import { and, eq, desc, alias } from 'drizzle-orm'
 import LaporanMasukClient from './LaporanMasukClient'
 import Link from 'next/link'
 
@@ -22,24 +22,25 @@ export default async function LaporanMasukPage() {
     : null
   if (!canAccess('laporan', payload.role, menuConfig)) redirect('/pengurus')
 
+  const pengurusProfile = alias(profiles, 'pengurus_profile')
+
   const list = await db.select({
     laporan: laporanWarga,
     nama: profiles.fullName,
     phone: profiles.phone,
     noRumah: profiles.noRumah,
+    namaTanggapiOleh: pengurusProfile.fullName,
   }).from(laporanWarga)
     .leftJoin(profiles, eq(laporanWarga.pelaporId, profiles.id))
-    .where(and(
-      eq(laporanWarga.rtGroupId, payload.rtGroupId!),
-      inArray(laporanWarga.status, ['menunggu', 'diproses'])
-    ))
+    .leftJoin(pengurusProfile, eq(laporanWarga.tanggapiOleh, pengurusProfile.id))
+    .where(eq(laporanWarga.rtGroupId, payload.rtGroupId!))
     .orderBy(desc(laporanWarga.createdAt))
-    .limit(50)
+    .limit(100)
 
   return (
     <>
       <div className="sec-h" style={{ marginBottom: 16 }}>
-        <div className="t"><FileText size={16} /> Laporan Masuk</div>
+        <div className="t"><FileText size={16} /> Laporan Warga</div>
         <Link href="/pengurus" style={{ fontSize: 13, color: 'var(--g600)', textDecoration: 'none', fontWeight: 700 }}>← Kembali</Link>
       </div>
       <LaporanMasukClient items={list.map(r => ({
@@ -49,9 +50,10 @@ export default async function LaporanMasukPage() {
         isi: r.laporan.isi,
         status: r.laporan.status,
         tanggapan: r.laporan.tanggapan,
+        namaTanggapiOleh: r.namaTanggapiOleh ?? null,
         namaPelapor: r.nama || r.phone || '-',
-        phonePelapor: r.phone || null,
-        noRumahPelapor: r.noRumah || null,
+        phonePelapor: r.phone ?? null,
+        noRumahPelapor: r.noRumah ?? null,
         createdAt: r.laporan.createdAt.toISOString(),
       }))} />
     </>

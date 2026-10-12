@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown, ExternalLink } from 'lucide-react'
+import { Clock, User, ClipboardList, Save, LogOut, Pencil, Image, FileText, X, Users, Crown, ExternalLink, Upload, Check } from 'lucide-react'
 
 function detectDocType(url: string): 'image' | 'pdf' {
   if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
@@ -66,7 +66,7 @@ const ROLE_LABELS: Record<string, string> = {
   warga: 'Warga', tamu: 'Tamu',
   ketua: 'Ketua RT', wakil_ketua: 'Wakil Ketua', sekretaris: 'Sekretaris',
   bendahara: 'Bendahara', humas: 'Humas', lingkungan: 'Seksi Lingkungan',
-  keamanan: 'Seksi Keamanan', peralatan: 'Seksi Peralatan', admin: 'Admin',
+  keamanan: 'Seksi Keamanan', peralatan: 'Seksi Peralatan', kordinator: 'Kordinator', admin: 'Admin',
 }
 
 export default function ProfilClient({ profile, warga, anggota, rtName, fotoFiles }: Props) {
@@ -89,6 +89,18 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
   const [msg, setMsg] = useState('')
   const [logoutLoading, setLogoutLoading] = useState(false)
 
+  // Inline No. Rumah edit
+  const [localNoRumah, setLocalNoRumah] = useState(profile.noRumah)
+  const [editNoRumah, setEditNoRumah] = useState(false)
+  const [noRumahInput, setNoRumahInput] = useState('')
+  const [noRumahSaving, setNoRumahSaving] = useState(false)
+
+  // Upload dokumen
+  const [localFotoFiles, setLocalFotoFiles] = useState(fotoFiles)
+  const [uploadingDocs, setUploadingDocs] = useState(false)
+  const [uploadDocError, setUploadDocError] = useState('')
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+
   async function saveProfile() {
     setLoading(true); setMsg('')
     try {
@@ -99,10 +111,65 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setEditing(false)
+      setLocalNoRumah(form.noRumah.trim() || null)
       router.refresh()
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Gagal menyimpan profil')
     } finally { setLoading(false) }
+  }
+
+  async function saveNoRumah() {
+    setNoRumahSaving(true)
+    const res = await fetch('/api/profil', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, noRumah: noRumahInput }),
+    })
+    if (res.ok) {
+      const val = noRumahInput.trim() || null
+      setLocalNoRumah(val)
+      setForm(p => ({ ...p, noRumah: noRumahInput }))
+      setEditNoRumah(false)
+    }
+    setNoRumahSaving(false)
+  }
+
+  async function hapusNoRumah() {
+    setNoRumahSaving(true)
+    const res = await fetch('/api/profil', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, noRumah: '' }),
+    })
+    if (res.ok) {
+      setLocalNoRumah(null)
+      setForm(p => ({ ...p, noRumah: '' }))
+    }
+    setNoRumahSaving(false)
+  }
+
+  async function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploadingDocs(true)
+    setUploadDocError('')
+    try {
+      const formData = new FormData()
+      files.forEach(f => formData.append('files', f))
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+      const uploadData = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadData.error)
+      const patchRes = await fetch('/api/profil', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appendFotoUrls: uploadData.urls }),
+      })
+      const patchData = await patchRes.json()
+      if (!patchRes.ok) throw new Error(patchData.error)
+      setLocalFotoFiles(prev => [...prev, ...uploadData.urls])
+    } catch (e) {
+      setUploadDocError(e instanceof Error ? e.message : 'Gagal upload dokumen')
+    } finally {
+      setUploadingDocs(false)
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
+    }
   }
 
   async function logout() {
@@ -177,7 +244,48 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
         <div className="peng-card" style={{ padding: '4px 14px' }}>
           <div className="kv"><span className="k">Nama</span><span className="v">{profile.fullName || '—'}</span></div>
           <div className="kv"><span className="k">No. HP</span><span className="v">{profile.phone}</span></div>
-          <div className="kv"><span className="k">No. Rumah</span><span className="v">{profile.noRumah || '—'}</span></div>
+
+          {/* No. Rumah — inline edit/hapus */}
+          <div className="kv" style={{ alignItems: 'center' }}>
+            <span className="k">No. Rumah</span>
+            {editNoRumah ? (
+              <span style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+                <input
+                  value={noRumahInput}
+                  onChange={e => setNoRumahInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveNoRumah(); if (e.key === 'Escape') setEditNoRumah(false) }}
+                  autoFocus
+                  placeholder="Mis. A-12"
+                  style={{ width: 90, height: 30, borderRadius: 8, border: '1.5px solid var(--g400)', padding: '0 8px', fontSize: 13, fontFamily: 'var(--f)', textAlign: 'right' }}
+                />
+                <button onClick={saveNoRumah} disabled={noRumahSaving}
+                  style={{ border: 'none', background: 'var(--g600)', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Check size={13} color="white" />
+                </button>
+                <button onClick={() => setEditNoRumah(false)}
+                  style={{ border: 'none', background: 'var(--gray200)', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <X size={13} />
+                </button>
+              </span>
+            ) : (
+              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span className="v">{localNoRumah || '—'}</span>
+                <button onClick={() => { setEditNoRumah(true); setNoRumahInput(localNoRumah || '') }}
+                  title="Edit No. Rumah"
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 3, color: 'var(--g600)', display: 'flex', alignItems: 'center' }}>
+                  <Pencil size={12} />
+                </button>
+                {localNoRumah && (
+                  <button onClick={hapusNoRumah} disabled={noRumahSaving}
+                    title="Hapus No. Rumah"
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 3, color: 'var(--red)', display: 'flex', alignItems: 'center' }}>
+                    <X size={12} />
+                  </button>
+                )}
+              </span>
+            )}
+          </div>
+
           <div className="kv"><span className="k">Email</span><span className="v">{profile.email || '—'}</span></div>
           <div className="kv"><span className="k">RT</span><span className="v">{rtName}</span></div>
         </div>
@@ -229,7 +337,6 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
               </div>
             </>
           )}
-
         </>
       )}
 
@@ -237,9 +344,9 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
       <div className="sec-h" style={{ margin: '20px 0 12px' }}>
         <div className="t"><Image size={16} /> Dokumen Pendaftaran</div>
       </div>
-      {fotoFiles.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
-          {fotoFiles.map((url, i) => {
+      {localFotoFiles.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
+          {localFotoFiles.map((url, i) => {
             const isPdf = detectDocType(url) === 'pdf'
             return (
               <button key={i} onClick={() => openDoc(url)}
@@ -253,9 +360,25 @@ export default function ProfilClient({ profile, warga, anggota, rtName, fotoFile
           })}
         </div>
       ) : (
-        <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13, marginBottom: 4 }}>
+        <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13, marginBottom: 8 }}>
           <FileText size={16} color="var(--gray400)" />
           Belum ada foto/dokumen terlampir
+        </div>
+      )}
+
+      {/* Tambah Dokumen */}
+      <input type="file" ref={uploadInputRef} multiple accept="image/*,.pdf" style={{ display: 'none' }}
+        onChange={handleDocUpload} />
+      <button
+        onClick={() => uploadInputRef.current?.click()}
+        disabled={uploadingDocs}
+        style={{ width: '100%', height: 42, border: '1.5px dashed var(--gray300)', borderRadius: 12, background: 'white', color: 'var(--gray600)', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 700, cursor: uploadingDocs ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <Upload size={14} />
+        {uploadingDocs ? 'Mengupload…' : 'Tambah Dokumen'}
+      </button>
+      {uploadDocError && (
+        <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginTop: 6 }}>
+          {uploadDocError}
         </div>
       )}
 

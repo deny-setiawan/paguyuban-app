@@ -2,8 +2,8 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyJwt } from '@/lib/auth/jwt'
 import { db } from '@/lib/db'
-import { profiles, warga, rtGroups } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { profiles, warga, rtGroups, wargaInvites } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -60,4 +60,34 @@ export async function PUT(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, profile: updated })
+}
+
+export async function PATCH(req: NextRequest) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('session')?.value
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const payload = await verifyJwt(token)
+  if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { appendFotoUrls } = await req.json()
+  if (!Array.isArray(appendFotoUrls) || appendFotoUrls.length === 0) {
+    return NextResponse.json({ error: 'appendFotoUrls wajib diisi' }, { status: 400 })
+  }
+
+  const [latestInvite] = await db.select()
+    .from(wargaInvites)
+    .where(eq(wargaInvites.profileId, payload.sub))
+    .orderBy(desc(wargaInvites.createdAt))
+    .limit(1)
+
+  if (!latestInvite) {
+    return NextResponse.json({ error: 'Data pendaftaran tidak ditemukan. Hubungi pengurus RT.' }, { status: 404 })
+  }
+
+  const existing = Array.isArray(latestInvite.fotoFiles) ? (latestInvite.fotoFiles as string[]) : []
+  await db.update(wargaInvites)
+    .set({ fotoFiles: [...existing, ...appendFotoUrls] })
+    .where(eq(wargaInvites.id, latestInvite.id))
+
+  return NextResponse.json({ ok: true })
 }

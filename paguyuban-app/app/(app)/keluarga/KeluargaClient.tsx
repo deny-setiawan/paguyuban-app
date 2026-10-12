@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { FileDown, Crown, User, Info, Users, FileText, X, Baby, Activity, Handshake } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { FileDown, Crown, User, Info, Users, FileText, X, Baby, Activity, Handshake, Upload } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
@@ -53,9 +53,39 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
   const [exportError, setExportError] = useState<string | null>(null)
   const [pdfPreview, setPdfPreview] = useState<PdfBuildResult | null>(null)
   const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
+  const [localFotoFiles, setLocalFotoFiles] = useState(fotoFiles)
+  const [uploadingDocs, setUploadingDocs] = useState(false)
+  const [uploadDocError, setUploadDocError] = useState('')
+  const uploadInputRef = useRef<HTMLInputElement>(null)
 
   function openDoc(url: string) {
     setDocModal({ url, type: detectDocType(url) })
+  }
+
+  async function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploadingDocs(true)
+    setUploadDocError('')
+    try {
+      const formData = new FormData()
+      files.forEach(f => formData.append('files', f))
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+      const uploadData = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadData.error)
+      const patchRes = await fetch('/api/profil', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appendFotoUrls: uploadData.urls }),
+      })
+      const patchData = await patchRes.json()
+      if (!patchRes.ok) throw new Error(patchData.error)
+      setLocalFotoFiles(prev => [...prev, ...uploadData.urls])
+    } catch (e) {
+      setUploadDocError(e instanceof Error ? e.message : 'Gagal upload dokumen')
+    } finally {
+      setUploadingDocs(false)
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
+    }
   }
 
   function closePdfPreview() {
@@ -243,9 +273,9 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
       <div className="sec-h" style={{ marginBottom: 12, marginTop: 20 }}>
         <div className="t"><FileText size={16} /> Dokumen Pendaftaran</div>
       </div>
-      {fotoFiles.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 4 }}>
-          {fotoFiles.map((url, i) => {
+      {localFotoFiles.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
+          {localFotoFiles.map((url, i) => {
             const type = detectDocType(url)
             return (
               <button key={i} onClick={() => openDoc(url)}
@@ -263,8 +293,24 @@ export default function KeluargaClient({ profileId, kepalaKk, allAnggota, phone,
           })}
         </div>
       ) : (
-        <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13, marginBottom: 4 }}>
+        <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13, marginBottom: 8 }}>
           <FileText size={16} color="var(--gray400)" /> Belum ada foto/dokumen terlampir
+        </div>
+      )}
+
+      {/* Tambah Dokumen */}
+      <input type="file" ref={uploadInputRef} multiple accept="image/*,.pdf" style={{ display: 'none' }}
+        onChange={handleDocUpload} />
+      <button
+        onClick={() => uploadInputRef.current?.click()}
+        disabled={uploadingDocs}
+        style={{ width: '100%', height: 42, border: '1.5px dashed var(--gray300)', borderRadius: 12, background: 'white', color: 'var(--gray600)', fontFamily: 'var(--f)', fontSize: 13, fontWeight: 700, cursor: uploadingDocs ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <Upload size={14} />
+        {uploadingDocs ? 'Mengupload…' : 'Tambah Dokumen'}
+      </button>
+      {uploadDocError && (
+        <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px', background: 'var(--red-l)', borderRadius: 10, marginTop: 6 }}>
+          {uploadDocError}
         </div>
       )}
 

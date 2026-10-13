@@ -670,13 +670,15 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                       title="Export PDF">
                       <FileDown size={11} /> {buildingKk === group.noRumah ? '...' : 'PDF'}
                     </button>
-                    <button
-                      className="btn-ghost"
-                      style={{ fontSize: 11, color: 'var(--g600)', borderColor: 'var(--g300)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
-                      onClick={() => { setAddAnggotaForm({ namaLengkap: '', jenisKelamin: '', hubunganKeluarga: '' }); setAddAnggotaModal({ noRumah: group.noRumah }) }}
-                      title="Tambah anggota keluarga">
-                      <UserPlus size={11} /> Anggota
-                    </button>
+                    {canDeleteKk && (
+                      <button
+                        className="btn-ghost"
+                        style={{ fontSize: 11, color: 'var(--g600)', borderColor: 'var(--g300)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => { setAddAnggotaForm({ namaLengkap: '', jenisKelamin: '', hubunganKeluarga: '' }); setAddAnggotaModal({ noRumah: group.noRumah }) }}
+                        title="Tambah anggota keluarga">
+                        <UserPlus size={11} /> Anggota
+                      </button>
+                    )}
                     {canDeleteKk && kepala && kepala.source === 'warga' && (
                       <button className="btn-ghost" style={{ fontSize: 11, color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setDeleteTarget({ id: kepala.id, noRumah: group.noRumah, nama: kepala.namaLengkap })}>
@@ -707,7 +709,7 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                         </div>
                         {w.phone && <div className="pi-d" style={{ color: 'var(--g600)' }}>{w.phone}</div>}
                       </div>
-                      {w.kkStatus !== 'kepala_kk' && w.source === 'warga' && (
+                      {canDeleteKk && w.kkStatus !== 'kepala_kk' && w.source === 'warga' && (
                         <button
                           onClick={e => { e.stopPropagation(); setRemoveAnggotaTarget(w) }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--gray400)', flexShrink: 0, display: 'flex', alignItems: 'center' }}

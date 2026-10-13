@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText, ExternalLink, Plus } from 'lucide-react'
+import { Users, User, Save, Trash2, X, Image, Home, AlertTriangle, FileDown, FileText, ExternalLink, Plus, UserPlus } from 'lucide-react'
 import type { KkExportData, PdfBuildResult } from '@/lib/pdf/warga-pdf'
 import PdfPreviewModal from '@/components/ui/PdfPreviewModal'
 
@@ -106,6 +106,12 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
   const [uploadingDocs, setUploadingDocs] = useState(false)
   const [uploadDocError, setUploadDocError] = useState('')
   const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const [addAnggotaModal, setAddAnggotaModal] = useState<{ noRumah: string } | null>(null)
+  const [addAnggotaForm, setAddAnggotaForm] = useState({ namaLengkap: '', jenisKelamin: '', hubunganKeluarga: '' })
+  const [addAnggotaLoading, setAddAnggotaLoading] = useState(false)
+  const [addAnggotaError, setAddAnggotaError] = useState('')
+  const [removeAnggotaTarget, setRemoveAnggotaTarget] = useState<WargaItem | null>(null)
+  const [removeAnggotaLoading, setRemoveAnggotaLoading] = useState(false)
   const [buildingKk, setBuildingKk] = useState<string | null>(null)
   const [buildingAll, setBuildingAll] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -165,6 +171,42 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
       setUploadingDocs(false)
       if (uploadInputRef.current) uploadInputRef.current.value = ''
     }
+  }
+
+  async function handleAddAnggota() {
+    if (!addAnggotaModal) return
+    if (!addAnggotaForm.namaLengkap.trim() || !addAnggotaForm.jenisKelamin || !addAnggotaForm.hubunganKeluarga) {
+      setAddAnggotaError('Semua field wajib diisi')
+      return
+    }
+    setAddAnggotaLoading(true)
+    setAddAnggotaError('')
+    const res = await fetch('/api/warga-anggota', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ noRumah: addAnggotaModal.noRumah, ...addAnggotaForm }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setAddAnggotaError(data.error || 'Gagal menambahkan anggota')
+      setAddAnggotaLoading(false)
+      return
+    }
+    setList(prev => [...prev, data.warga])
+    setAddAnggotaModal(null)
+    setAddAnggotaForm({ namaLengkap: '', jenisKelamin: '', hubunganKeluarga: '' })
+    setAddAnggotaLoading(false)
+  }
+
+  async function handleRemoveAnggota() {
+    if (!removeAnggotaTarget) return
+    setRemoveAnggotaLoading(true)
+    const res = await fetch(`/api/warga-anggota/${removeAnggotaTarget.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setList(prev => prev.filter(w => w.id !== removeAnggotaTarget.id))
+      setRemoveAnggotaTarget(null)
+    }
+    setRemoveAnggotaLoading(false)
   }
 
   async function handleExportKk(group: KKGroup) {
@@ -335,6 +377,80 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                 style={{ flex: 1, height: 44, background: 'var(--red)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 onClick={confirmDeleteKk} disabled={deleteLoading}>
                 {deleteLoading ? 'Menghapus...' : <><Trash2 size={14} /> Hapus KK</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tambah Anggota KK modal */}
+      {addAnggotaModal && (
+        <div className="sheet-mask show" onClick={() => { setAddAnggotaModal(null); setAddAnggotaError('') }}>
+          <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>Tambah Anggota KK</div>
+              <button onClick={() => { setAddAnggotaModal(null); setAddAnggotaError('') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--gray500)', marginBottom: 16 }}>No. Rumah: <b>{addAnggotaModal.noRumah}</b></div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Nama Lengkap *</label>
+            <input className="inp" value={addAnggotaForm.namaLengkap}
+              onChange={e => setAddAnggotaForm(f => ({ ...f, namaLengkap: e.target.value }))}
+              placeholder="Nama lengkap sesuai KTP" />
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Jenis Kelamin *</label>
+            <select className="inp" value={addAnggotaForm.jenisKelamin}
+              onChange={e => setAddAnggotaForm(f => ({ ...f, jenisKelamin: e.target.value }))}>
+              <option value="">— pilih —</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 3 }}>Hubungan Keluarga *</label>
+            <select className="inp" value={addAnggotaForm.hubunganKeluarga}
+              onChange={e => setAddAnggotaForm(f => ({ ...f, hubunganKeluarga: e.target.value }))}>
+              <option value="">— pilih —</option>
+              <option value="Istri">Istri</option>
+              <option value="Suami">Suami</option>
+              <option value="Anak">Anak</option>
+              <option value="Orang Tua">Orang Tua</option>
+              <option value="Mertua">Mertua</option>
+              <option value="Saudara">Saudara</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+            {addAnggotaError && (
+              <div style={{ background: 'var(--red-l)', color: 'var(--red)', borderRadius: 8, padding: '6px 12px', fontSize: 12, marginBottom: 8 }}>
+                {addAnggotaError}
+              </div>
+            )}
+            <button className="btn-primary" style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              disabled={addAnggotaLoading} onClick={handleAddAnggota}>
+              {addAnggotaLoading ? 'Menyimpan...' : <><UserPlus size={14} /> Tambah Anggota</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hapus anggota confirmation modal */}
+      {removeAnggotaTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 380 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <AlertTriangle size={22} color="var(--red)" />
+              <div style={{ fontWeight: 800, fontSize: 16 }}>Hapus Anggota?</div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--gray600)', marginBottom: 20, lineHeight: 1.5 }}>
+              Hapus <b>{removeAnggotaTarget.namaLengkap}</b> ({removeAnggotaTarget.hubunganKeluarga || 'Anggota'}) dari KK No. <b>{removeAnggotaTarget.noRumah}</b>?
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-ghost" style={{ flex: 1, height: 44, justifyContent: 'center' }}
+                onClick={() => setRemoveAnggotaTarget(null)} disabled={removeAnggotaLoading}>
+                Batal
+              </button>
+              <button
+                style={{ flex: 1, height: 44, background: 'var(--red)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                onClick={handleRemoveAnggota} disabled={removeAnggotaLoading}>
+                {removeAnggotaLoading ? 'Menghapus...' : <><Trash2 size={14} /> Hapus</>}
               </button>
             </div>
           </div>
@@ -554,6 +670,13 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                       title="Export PDF">
                       <FileDown size={11} /> {buildingKk === group.noRumah ? '...' : 'PDF'}
                     </button>
+                    <button
+                      className="btn-ghost"
+                      style={{ fontSize: 11, color: 'var(--g600)', borderColor: 'var(--g300)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
+                      onClick={() => { setAddAnggotaForm({ namaLengkap: '', jenisKelamin: '', hubunganKeluarga: '' }); setAddAnggotaModal({ noRumah: group.noRumah }) }}
+                      title="Tambah anggota keluarga">
+                      <UserPlus size={11} /> Anggota
+                    </button>
                     {canDeleteKk && kepala && kepala.source === 'warga' && (
                       <button className="btn-ghost" style={{ fontSize: 11, color: 'var(--red)', borderColor: 'var(--red)', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setDeleteTarget({ id: kepala.id, noRumah: group.noRumah, nama: kepala.namaLengkap })}>
@@ -584,6 +707,14 @@ export default function DataWargaClient({ items, rtName, canDeleteKk = false }: 
                         </div>
                         {w.phone && <div className="pi-d" style={{ color: 'var(--g600)' }}>{w.phone}</div>}
                       </div>
+                      {w.kkStatus !== 'kepala_kk' && w.source === 'warga' && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setRemoveAnggotaTarget(w) }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--gray400)', flexShrink: 0, display: 'flex', alignItems: 'center' }}
+                          title="Hapus anggota">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

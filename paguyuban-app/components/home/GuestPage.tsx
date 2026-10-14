@@ -260,10 +260,8 @@ export default function GuestPage({
     if (!kepala.phone.trim()) { setNbMsg('Nomor HP wajib diisi'); return }
     if (!kepala.noRumah.trim()) { setNbMsg('Blok & No. Rumah wajib diisi'); return }
     if (fotoFiles.length === 0) { setNbMsg('Lampiran dokumen wajib diisi. Silakan unggah minimal 1 file.'); return }
-    // Determine actual jenis based on phoneCheck result
-    const actualJenis = nbMode === 'warga_baru'
-      ? 'warga_baru'
-      : (phoneCheck?.found ? 'pemutakhiran_warga' : 'warga_baru')
+    // pemutakhiran selalu kirim jenis 'pemutakhiran_warga' — phoneCheck sudah null saat ini
+    const actualJenis: 'warga_baru' | 'pemutakhiran_warga' = nbMode === 'pemutakhiran' ? 'pemutakhiran_warga' : 'warga_baru'
     setNbLoading(true); setNbMsg('')
     try {
       let fotoUrls: string[] = []
@@ -285,7 +283,16 @@ export default function GuestPage({
           fotoFiles: fotoUrls,
         }),
       })
-      const data = await res.json()
+      let data: { ok?: boolean; inviteId?: string; profileId?: string; driveWarning?: string; error?: string }
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error(
+          res.status === 413
+            ? 'Ukuran file terlalu besar. Kurangi jumlah atau ukuran foto, lalu coba lagi.'
+            : `Terjadi kesalahan server (${res.status}). Coba lagi beberapa saat.`
+        )
+      }
       if (!res.ok) throw new Error(data.error)
       if (data.driveWarning) console.warn('[Drive]', data.driveWarning)
       setNbStep(99)

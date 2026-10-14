@@ -182,7 +182,7 @@ export default function GuestPage({
 
   async function sendOtp() {
     const cleaned = phone.replace(/\D/g, '')
-    if (cleaned.length < 9) { setMsg('Nomor HP tidak valid'); return }
+    if (cleaned.length < 9 || cleaned.length > 15) { setMsg('Nomor HP tidak valid. Gunakan format 08xx-xxxx-xxxx.'); return }
     setLoading(true); setMsg('')
     try {
       const res = await fetch('/api/auth/send-otp', {
@@ -218,6 +218,11 @@ export default function GuestPage({
   async function handleStep1Next() {
     if (!kepala.nama.trim()) { setNbMsg('Nama wajib diisi'); return }
     if (!kepala.phone.trim()) { setNbMsg('Nomor HP (WhatsApp) wajib diisi'); return }
+    const cleanedPhone = kepala.phone.replace(/\D/g, '')
+    if (cleanedPhone.length < 9 || cleanedPhone.length > 15) {
+      setNbMsg('Nomor HP tidak valid. Gunakan format 08xx-xxxx-xxxx (9–13 digit).')
+      return
+    }
     if (!kepala.noRumah.trim()) { setNbMsg('Blok & No. Rumah wajib diisi'); return }
     if (!kepala.tgl) { setNbMsg('Tanggal mulai menempati wajib diisi'); return }
     setNbMsg('')
@@ -582,7 +587,7 @@ export default function GuestPage({
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>
                     Nomor HP (WhatsApp) *
                   </label>
-                  <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" value={kepala.phone}
+                  <input className="rl-in" inputMode="tel" placeholder="0812xxxxxxxx" maxLength={16} value={kepala.phone}
                     onChange={e => setKepala(p => ({ ...p, phone: e.target.value }))} />
                   <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 4 }}>
                     <Info size={11} style={{ flexShrink: 0, marginTop: 1 }} />

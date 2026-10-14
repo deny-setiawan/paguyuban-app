@@ -101,6 +101,9 @@ export async function POST(req: NextRequest) {
     let profileId: string | null = null
     if (phone) {
       const normalPhone = normalizePhone(phone)
+      if (normalPhone.length < 10 || normalPhone.length > 15) {
+        return NextResponse.json({ error: 'Nomor HP tidak valid. Gunakan format 08xx-xxxx-xxxx.' }, { status: 400 })
+      }
       const existing = await db.select().from(profiles).where(eq(profiles.phone, normalPhone)).limit(1)
       if (jenis === 'warga_baru' && existing.length > 0) {
         return NextResponse.json({ error: 'Nomor HP sudah terdaftar. Silakan login.' }, { status: 409 })

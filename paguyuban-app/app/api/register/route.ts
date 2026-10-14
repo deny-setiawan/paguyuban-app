@@ -94,6 +94,9 @@ export async function POST(req: NextRequest) {
     if (!nama || typeof nama !== 'string' || !nama.trim()) {
       return NextResponse.json({ error: 'Nama wajib diisi' }, { status: 400 })
     }
+    if (noRumah && typeof noRumah === 'string' && noRumah.trim().length > 20) {
+      return NextResponse.json({ error: 'No. Rumah/Blok terlalu panjang. Isi hanya nomor/blok pendek (maks. 20 karakter), contoh: "H1 No.10" atau "A-12".' }, { status: 400 })
+    }
 
     const [rt] = await db.select().from(rtGroups).limit(1)
     if (!rt) return NextResponse.json({ error: 'Data RT belum dikonfigurasi' }, { status: 400 })

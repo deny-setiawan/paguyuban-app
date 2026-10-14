@@ -631,7 +631,8 @@ export default function GuestPage({
 
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray600)', display: 'block', marginBottom: 4 }}>Blok & No. Rumah *</label>
-                  <input className="rl-in" placeholder="Mis. A-12 atau No. 5" value={kepala.noRumah} onChange={e => setKepala(p => ({ ...p, noRumah: e.target.value }))} />
+                  <input className="rl-in" placeholder="Mis. H1 No.10 atau A-12" maxLength={20} value={kepala.noRumah} onChange={e => setKepala(p => ({ ...p, noRumah: e.target.value }))} />
+                  <div style={{ fontSize: 11, color: 'var(--gray400)', marginTop: 3 }}>Isi nomor/blok saja, bukan nama jalan (maks. 20 karakter)</div>
                 </div>
 
                 <div>

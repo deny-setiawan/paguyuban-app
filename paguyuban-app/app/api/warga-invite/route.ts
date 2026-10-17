@@ -8,6 +8,52 @@ import { sendWhatsAppMessage, phoneToJid, DEFAULT_NOTIF_CONFIG } from '@/lib/wa-
 import type { WaNotifConfig } from '@/lib/wa-client'
 import { canAccess, type MenuConfig } from '@/lib/menu-config'
 
+// ── shared helper ────────────────────────────────────────────────────────────
+
+type InviteRow = typeof wargaInvites.$inferSelect
+
+async function createWargaFromInvite(
+  invite: InviteRow,
+  dataKk: Record<string, string> | null,
+  anggotaList: Array<Record<string, string>> | null,
+) {
+  const [kepala] = await db.insert(warga).values({
+    rtGroupId: invite.rtGroupId,
+    profileId: invite.profileId,
+    namaLengkap: invite.nama,
+    noRumah: invite.noRumah || null,
+    kkStatus: 'kepala_kk',
+    statusHunian: dataKk?.hunian || null,
+    statusPerkawinan: dataKk?.kawin || null,
+    jenisKelamin: dataKk?.jk || null,
+    agama: dataKk?.agama || null,
+    pekerjaan: dataKk?.pekerjaan || null,
+    tanggalMenempati: dataKk?.tgl || null,
+    alamatLengkap: dataKk?.alamat || null,
+  }).returning()
+  console.log(`[createWargaFromInvite] kepala_kk dibuat: ${kepala.id}`)
+
+  if (Array.isArray(anggotaList)) {
+    for (const a of anggotaList) {
+      if (!a.nama?.trim()) continue
+      const [anggota] = await db.insert(warga).values({
+        rtGroupId: invite.rtGroupId,
+        namaLengkap: a.nama.trim(),
+        hubunganKeluarga: a.hub || a.hubungan || null,
+        tanggalLahir: a.tgl || null,
+        jenisKelamin: a.jk || null,
+        agama: a.agama || null,
+        pekerjaan: a.pekerjaan || null,
+        kkStatus: 'anggota',
+        noRumah: invite.noRumah || null,
+      }).returning()
+      console.log(`[createWargaFromInvite] anggota dibuat: ${anggota.id} (${a.nama})`)
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies()
   const token = cookieStore.get('session')?.value
@@ -66,61 +112,48 @@ export async function PATCH(req: NextRequest) {
     const dataKk = invite.dataKk as Record<string, string> | null
     const anggotaList = invite.anggota as Array<Record<string, string>> | null
 
-    if (invite.jenis === 'pemutakhiran_warga') {
-      // Update existing warga record with new data from form
-      if (invite.profileId) {
-        const [existingWarga] = await db.select().from(warga)
-          .where(eq(warga.profileId, invite.profileId)).limit(1)
-        if (existingWarga) {
-          await db.update(warga).set({
-            namaLengkap: invite.nama,
-            noRumah: invite.noRumah || existingWarga.noRumah,
-            statusHunian: dataKk?.hunian || existingWarga.statusHunian,
-            statusPerkawinan: dataKk?.kawin || existingWarga.statusPerkawinan,
-            jenisKelamin: dataKk?.jk || existingWarga.jenisKelamin,
-            agama: dataKk?.agama || existingWarga.agama,
-            tanggalMenempati: dataKk?.tgl || existingWarga.tanggalMenempati,
-          }).where(eq(warga.id, existingWarga.id))
-        }
-      }
-    } else {
-      // warga_baru: create new warga record if not exists
-      if (invite.profileId) {
-        const existing = await db.select().from(warga).where(eq(warga.profileId, invite.profileId)).limit(1)
-        if (existing.length === 0) {
-          await db.insert(warga).values({
-            rtGroupId: invite.rtGroupId,
-            profileId: invite.profileId,
-            namaLengkap: invite.nama,
-            noRumah: invite.noRumah || null,
-            kkStatus: 'kepala_kk',
-            statusHunian: dataKk?.hunian || null,
-            statusPerkawinan: dataKk?.kawin || null,
-            jenisKelamin: dataKk?.jk || null,
-            agama: dataKk?.agama || null,
-            pekerjaan: dataKk?.pekerjaan || null,
-            tanggalMenempati: dataKk?.tgl || null,
-            alamatLengkap: dataKk?.alamat || null,
-          })
-
-          if (Array.isArray(anggotaList)) {
-            for (const a of anggotaList) {
-              if (!a.nama?.trim()) continue
-              await db.insert(warga).values({
-                rtGroupId: invite.rtGroupId,
-                namaLengkap: a.nama || '',
-                hubunganKeluarga: a.hub || a.hubungan || null,
-                tanggalLahir: a.tgl || null,
-                jenisKelamin: a.jk || null,
-                agama: a.agama || null,
-                pekerjaan: a.pekerjaan || null,
-                kkStatus: 'anggota',
-                noRumah: invite.noRumah || null,
-              })
-            }
+    try {
+      if (invite.jenis === 'pemutakhiran_warga') {
+        // Update existing warga — if none exists yet, create as new warga
+        if (invite.profileId) {
+          const [existingWarga] = await db.select().from(warga)
+            .where(eq(warga.profileId, invite.profileId)).limit(1)
+          if (existingWarga) {
+            await db.update(warga).set({
+              namaLengkap: invite.nama,
+              noRumah: invite.noRumah || existingWarga.noRumah,
+              statusHunian: dataKk?.hunian || existingWarga.statusHunian,
+              statusPerkawinan: dataKk?.kawin || existingWarga.statusPerkawinan,
+              jenisKelamin: dataKk?.jk || existingWarga.jenisKelamin,
+              agama: dataKk?.agama || existingWarga.agama,
+              tanggalMenempati: dataKk?.tgl || existingWarga.tanggalMenempati,
+            }).where(eq(warga.id, existingWarga.id))
+            console.log(`[approve] pemutakhiran: updated warga ${existingWarga.id} untuk invite ${id}`)
+          } else {
+            // Warga belum ada — perlakukan seperti warga_baru
+            console.log(`[approve] pemutakhiran tapi warga belum ada, buat baru untuk invite ${id}`)
+            await createWargaFromInvite(invite, dataKk, anggotaList)
           }
+        } else {
+          console.warn(`[approve] pemutakhiran invite ${id} tidak punya profileId — skip warga`)
+        }
+      } else {
+        // warga_baru
+        if (invite.profileId) {
+          const existing = await db.select().from(warga).where(eq(warga.profileId, invite.profileId)).limit(1)
+          if (existing.length === 0) {
+            await createWargaFromInvite(invite, dataKk, anggotaList)
+          } else {
+            console.log(`[approve] warga sudah ada (${existing[0].id}) untuk invite ${id} — skip insert`)
+          }
+        } else {
+          console.warn(`[approve] warga_baru invite ${id} tidak punya profileId — skip warga`)
         }
       }
+    } catch (wargaErr) {
+      const errMsg = wargaErr instanceof Error ? wargaErr.message : String(wargaErr)
+      console.error(`[approve] GAGAL buat/update warga untuk invite ${id}:`, errMsg)
+      // Tetap return ok agar status tetap tersimpan, tapi log error agar bisa di-regenerate
     }
 
     // WA notification to warga

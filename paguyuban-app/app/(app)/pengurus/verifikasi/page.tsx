@@ -39,6 +39,7 @@ export default async function VerifikasiPage() {
     .limit(100)
 
   const canApprove = canAccess('wargaBaru', payload.role, menuConfig)
+  const isAdmin = payload.role === 'admin'
 
   return (
     <>
@@ -52,10 +53,11 @@ export default async function VerifikasiPage() {
         noRumah: i.noRumah,
         status: i.status || 'pending',
         jenis: i.jenis || 'warga_baru',
+        profileId: i.profileId ?? null,
         dataKk: i.dataKk as Record<string, string> | null,
         anggota: i.anggota as Array<Record<string, string>> | null,
         createdAt: i.createdAt.toISOString(),
-      }))} canApprove={canApprove} />
+      }))} canApprove={canApprove} isAdmin={isAdmin} />
     </>
   )
 }

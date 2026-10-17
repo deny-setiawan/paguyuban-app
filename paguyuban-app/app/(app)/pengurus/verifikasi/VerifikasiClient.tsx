@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { timeAgo } from '@/lib/utils'
-import { Users, User, CheckCircle, XCircle, FileText, X, AlertTriangle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, User, CheckCircle, XCircle, FileText, X, AlertTriangle, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 
 function detectDocType(url: string): 'image' | 'pdf' {
   if (url.startsWith('data:application/pdf') || /\.pdf(\?|$)/i.test(url)) return 'pdf'
@@ -22,10 +22,19 @@ interface InviteItem {
   noRumah: string | null
   status: string
   jenis: string
+  profileId: string | null
   dataKk: Record<string, string> | null
   anggota: Array<Record<string, string>> | null
   fotoFiles?: string[] | null  // undefined = belum di-load
   createdAt: string
+}
+
+interface RegenResult {
+  ok: boolean
+  log: string[]
+  created: number
+  updated: number
+  error?: string
 }
 
 const STATUS_STYLE: Record<string, { label: string; bg: string; color: string }> = {
@@ -42,7 +51,7 @@ const KK_FIELD_LABEL: Record<string, string> = {
 
 const PAGE_SIZE = 5
 
-export default function VerifikasiClient({ items, canApprove }: { items: InviteItem[], canApprove: boolean }) {
+export default function VerifikasiClient({ items, canApprove, isAdmin }: { items: InviteItem[], canApprove: boolean, isAdmin?: boolean }) {
   const [list, setList] = useState(items)
   const [loading, setLoading] = useState<string | null>(null)
   const [detail, setDetail] = useState<InviteItem | null>(null)
@@ -50,6 +59,8 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   const [docModal, setDocModal] = useState<{ url: string; type: 'image' | 'pdf' } | null>(null)
   const [confirmApprove, setConfirmApprove] = useState<InviteItem | null>(null)
   const [pendingPage, setPendingPage] = useState(0)
+  const [regenLoading, setRegenLoading] = useState(false)
+  const [regenResult, setRegenResult] = useState<RegenResult | null>(null)
 
   async function openDetail(item: InviteItem) {
     // fotoFiles sudah di-load sebelumnya → langsung tampil
@@ -98,6 +109,23 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
     }
   }
 
+  async function handleRegenerate(id: string) {
+    setRegenLoading(true)
+    setRegenResult(null)
+    try {
+      const res = await fetch('/api/warga-invite/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId: id }),
+      })
+      const data = await res.json() as RegenResult
+      setRegenResult(data)
+    } catch {
+      setRegenResult({ ok: false, log: ['❌ Gagal menghubungi server'], created: 0, updated: 0 })
+    }
+    setRegenLoading(false)
+  }
+
   const pending = list.filter(i => i.status === 'pending')
   const done = list.filter(i => i.status !== 'pending')
   const totalPages = Math.ceil(pending.length / PAGE_SIZE)
@@ -116,7 +144,7 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
   return (
     <>
       {detail && (
-        <div className="sheet-mask show" onClick={() => !detailLoading && setDetail(null)}>
+        <div className="sheet-mask show" onClick={() => { if (!detailLoading) { setDetail(null); setRegenResult(null) } }}>
           <div className="sheet show" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>
               {detail.nama}
@@ -200,6 +228,42 @@ export default function VerifikasiClient({ items, canApprove }: { items: InviteI
               <div style={{ background: 'var(--gray50)', borderRadius: 10, padding: '12px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray500)', fontSize: 13 }}>
                 <FileText size={16} color="var(--gray400)" />
                 Tidak ada foto/dokumen terlampir
+              </div>
+            )}
+
+            {isAdmin && detail.status === 'disetujui' && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--gray500)', marginBottom: 8, letterSpacing: 0.5 }}>
+                  REGENERATE DATA WARGA
+                </div>
+                {!regenResult ? (
+                  <button
+                    onClick={() => { setRegenResult(null); handleRegenerate(detail.id) }}
+                    disabled={regenLoading}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', border: '1.5px dashed var(--gray300)', borderRadius: 10, background: 'var(--gray50)', cursor: regenLoading ? 'default' : 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--gray600)', fontFamily: 'var(--f)' }}>
+                    {regenLoading ? <><Loader2 size={14} className="spin" /> Memproses...</> : <><RefreshCw size={14} /> Regenerate Kepala KK + Anggota</>}
+                  </button>
+                ) : (
+                  <div style={{ background: regenResult.ok ? 'var(--g50)' : 'var(--red-l)', borderRadius: 10, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: regenResult.ok ? 'var(--g700)' : 'var(--red)' }}>
+                        {regenResult.ok ? `Berhasil: +${regenResult.created} dibuat, ${regenResult.updated} diperbarui` : 'Gagal'}
+                      </span>
+                      <button onClick={() => setRegenResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                        <X size={14} color="var(--gray500)" />
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--gray700)', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto' }}>
+                      {regenResult.log.join('\n')}
+                    </div>
+                    <button
+                      onClick={() => { setRegenResult(null); handleRegenerate(detail.id) }}
+                      disabled={regenLoading}
+                      style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--gray300)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--gray600)', fontFamily: 'var(--f)' }}>
+                      <RefreshCw size={12} /> Ulangi
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
